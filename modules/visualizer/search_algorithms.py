@@ -3,44 +3,41 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple
 import heapq
 import math
+import random
 import time
 from collections import deque
 
 Coord = Tuple[int, int]
 Grid = List[List[int]]  # 0 empty, 1 wall, 2 start, 3 goal
 
+
 def normalize_algo(name: str) -> str:
-    # normalize for safety: casing, spaces, dashes
     n = (name or "").strip().lower()
     n = n.replace(" ", "").replace("-", "").replace("_", "")
 
-    # common aliases/typos users pick up from UI labels
     aliases = {
-        "dffs": "dfs",              # common typo
-        "bidirectionalbfs": "bidir",
+        "dffs": "dfs",
         "bidirectionalbfs": "bidir",
         "bidirectional": "bidir",
         "uniformcostsearch": "ucs",
         "uniformcost": "ucs",
         "weightedastar": "wastar",
-        "wastar": "wastar",
-        "idastar": "idastar",
-        "id a*": "idastar",
-        "id a": "idastar",
-        "simulatedannealing": "anneal",
-        "randomwalk": "rwalk",
-        "stochasticdfs": "sdfs",
-        "randomrestarthillclimb": "rrhill",
-        "randomrestarthillclimbing": "rrhill",
-        "hillclimb": "hill",
-        "hillclimbing": "hill",
         "beamsearch": "beam",
         "depthlimitedsearch": "dls",
         "iterativedeepeningdfs": "iddfs",
-        "iterativedeepeninga*": "idastar",
+        "stochasticdfs": "sdfs",
+        "randomwalk": "rwalk",
+        "hillclimb": "hill",
+        "hillclimbing": "hill",
+        "randomrestarthillclimb": "rrhill",
+        "randomrestarthillclimbing": "rrhill",
+        "simulatedannealing": "anneal",
+        "idastar": "idastar",
+        "id a*": "idastar",
+        "ida*": "idastar",
     }
-
     return aliases.get(n, n)
+
 
 @dataclass
 class SearchResult:
@@ -102,10 +99,10 @@ def get_heuristic_fn(name: str) -> Callable[[Coord, Coord], float]:
 
 
 # -------------------------
-# Algorithms
+# Classic searches
 # -------------------------
 
-def bfs(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
+def bfs(grid: Grid, start: Coord, goal: Coord):
     q = deque([start])
     parent = {start: None}
     visited_order = [start]
@@ -122,41 +119,39 @@ def bfs(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord], Dict[Coord,
     return visited_order, parent
 
 
-def dfs(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
+def dfs(grid: Grid, start: Coord, goal: Coord):
     stack = [start]
     parent = {start: None}
     visited_order = []
+    seen = set()
 
     while stack:
         cur = stack.pop()
-        if cur in visited_order:
+        if cur in seen:
             continue
+        seen.add(cur)
         visited_order.append(cur)
         if cur == goal:
             break
-        # push neighbors in reverse so it looks consistent visually
         for nb in reversed(neighbors_4(grid, cur)):
             if nb not in parent:
                 parent[nb] = cur
             stack.append(nb)
-
     return visited_order, parent
 
 
-def ucs_or_dijkstra(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
-    """
-    Uniform cost search on a grid where each move cost = 1.
-    (Equivalent to Dijkstra.)
-    """
+def ucs_or_dijkstra(grid: Grid, start: Coord, goal: Coord):
     pq = [(0, start)]
     parent = {start: None}
     dist = {start: 0}
     visited_order = []
+    visited_set = set()
 
     while pq:
         g, cur = heapq.heappop(pq)
-        if cur in visited_order:
+        if cur in visited_set:
             continue
+        visited_set.add(cur)
         visited_order.append(cur)
         if cur == goal:
             break
@@ -171,7 +166,114 @@ def ucs_or_dijkstra(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord],
     return visited_order, parent
 
 
-def greedy_best_first(grid: Grid, start: Coord, goal: Coord, h_fn) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
+# -------------------------
+# DLS / IDDFS
+# -------------------------
+
+def dls(grid: Grid, start: Coord, goal: Coord, limit: int):
+    stack = [(start, 0)]
+    parent = {start: None}
+    visited_order = []
+    best_depth = {start: 0}
+
+    while stack:
+        cur, depth = stack.pop()
+        visited_order.append(cur)
+        if cur == goal:
+            break
+        if depth >= limit:
+            continue
+
+        for nb in reversed(neighbors_4(grid, cur)):
+            nd = depth + 1
+            if nb not in best_depth or nd < best_depth[nb]:
+                best_depth[nb] = nd
+                parent[nb] = cur
+                stack.append((nb, nd))
+
+    return visited_order, parent
+
+
+def iddfs(grid: Grid, start: Coord, goal: Coord, max_depth: int = 80):
+    total_visited = []
+    final_parent = {start: None}
+
+    for limit in range(max_depth + 1):
+        visited_order, parent = dls(grid, start, goal, limit)
+        total_visited.extend(visited_order)
+        if goal in parent:
+            final_parent = parent
+            break
+
+    return total_visited, final_parent
+
+
+# -------------------------
+# Bidirectional BFS
+# -------------------------
+
+def bidirectional_bfs(grid: Grid, start: Coord, goal: Coord):
+    if start == goal:
+        return [start], {start: None}
+
+    q1 = deque([start])
+    q2 = deque([goal])
+    parent1 = {start: None}
+    parent2 = {goal: None}
+    visited_order = []
+    meet = None
+
+    while q1 and q2:
+        for _ in range(len(q1)):
+            cur = q1.popleft()
+            visited_order.append(cur)
+            for nb in neighbors_4(grid, cur):
+                if nb not in parent1:
+                    parent1[nb] = cur
+                    q1.append(nb)
+                    if nb in parent2:
+                        meet = nb
+                        break
+            if meet:
+                break
+        if meet:
+            break
+
+        for _ in range(len(q2)):
+            cur = q2.popleft()
+            visited_order.append(cur)
+            for nb in neighbors_4(grid, cur):
+                if nb not in parent2:
+                    parent2[nb] = cur
+                    q2.append(nb)
+                    if nb in parent1:
+                        meet = nb
+                        break
+            if meet:
+                break
+        if meet:
+            break
+
+    if not meet:
+        return visited_order, parent1
+
+    path1 = reconstruct_path(parent1, start, meet)
+    back = reconstruct_path(parent2, goal, meet)
+    back.reverse()
+    full_path = path1 + back[1:]
+
+    parent = {start: None}
+    for i in range(1, len(full_path)):
+        parent[full_path[i]] = full_path[i - 1]
+
+    return visited_order, parent
+
+
+# -------------------------
+# Informed: Greedy / A* / Weighted A*
+# -------------------------
+
+def greedy_best_first(grid: Grid, start: Coord, goal: Coord, h_fn):
     pq = [(h_fn(start, goal), start)]
     parent = {start: None}
     seen = set([start])
@@ -192,16 +294,18 @@ def greedy_best_first(grid: Grid, start: Coord, goal: Coord, h_fn) -> Tuple[List
     return visited_order, parent
 
 
-def astar(grid: Grid, start: Coord, goal: Coord, h_fn) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
-    pq = [(h_fn(start, goal), 0, start)]  # (f, g, node)
+def astar(grid: Grid, start: Coord, goal: Coord, h_fn):
+    pq = [(h_fn(start, goal), 0, start)]  # (f,g,node)
     parent = {start: None}
     g_score = {start: 0}
     visited_order = []
+    visited_set = set()
 
     while pq:
         _, g, cur = heapq.heappop(pq)
-        if cur in visited_order:
+        if cur in visited_set:
             continue
+        visited_set.add(cur)
         visited_order.append(cur)
 
         if cur == goal:
@@ -218,118 +322,260 @@ def astar(grid: Grid, start: Coord, goal: Coord, h_fn) -> Tuple[List[Coord], Dic
     return visited_order, parent
 
 
-def dls(grid: Grid, start: Coord, goal: Coord, limit: int) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
-    """
-    Depth-limited search used by IDDFS.
-    Returns visited order and parent map for reconstruction when goal found.
-    """
-    stack = [(start, 0)]
+def weighted_astar(grid: Grid, start: Coord, goal: Coord, h_fn, w: float):
+    w = max(1.0, float(w))
+    pq = [(w * h_fn(start, goal), 0, start)]
     parent = {start: None}
+    g_score = {start: 0}
     visited_order = []
-    visited_depth = {start: 0}
+    visited_set = set()
 
-    while stack:
-        cur, depth = stack.pop()
+    while pq:
+        _, g, cur = heapq.heappop(pq)
+        if cur in visited_set:
+            continue
+        visited_set.add(cur)
         visited_order.append(cur)
+
         if cur == goal:
             break
-        if depth >= limit:
-            continue
 
-        for nb in reversed(neighbors_4(grid, cur)):
-            nd = depth + 1
-            if nb not in visited_depth or nd < visited_depth[nb]:
-                visited_depth[nb] = nd
+        for nb in neighbors_4(grid, cur):
+            ng = g + 1
+            if nb not in g_score or ng < g_score[nb]:
+                g_score[nb] = ng
                 parent[nb] = cur
-                stack.append((nb, nd))
+                f = ng + w * h_fn(nb, goal)
+                heapq.heappush(pq, (f, ng, nb))
 
     return visited_order, parent
 
 
-def iddfs(grid: Grid, start: Coord, goal: Coord, max_depth: int = 60) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
-    total_visited = []
-    final_parent = {start: None}
+# -------------------------
+# IDA* (Iterative Deepening A*)
+# -------------------------
 
-    for limit in range(max_depth + 1):
-        visited_order, parent = dls(grid, start, goal, limit)
-        total_visited.extend(visited_order)
+def ida_star(grid: Grid, start: Coord, goal: Coord, h_fn, max_iters: int = 20000):
+    visited_order: List[Coord] = []
+    parent: Dict[Coord, Optional[Coord]] = {start: None}
 
-        if goal in parent:
-            final_parent = parent
+    bound = h_fn(start, goal)
+
+    def search(node: Coord, g: int, bound_val: float, seen: set) -> Tuple[float, bool]:
+        f = g + h_fn(node, goal)
+        if f > bound_val:
+            return f, False
+        visited_order.append(node)
+        if node == goal:
+            return f, True
+
+        min_over = float("inf")
+        for nb in neighbors_4(grid, node):
+            if nb in seen:
+                continue
+            parent[nb] = node
+            seen.add(nb)
+            t, found = search(nb, g + 1, bound_val, seen)
+            if found:
+                return t, True
+            min_over = min(min_over, t)
+            seen.remove(nb)
+        return min_over, False
+
+    seen = set([start])
+    for _ in range(max_iters):
+        t, found = search(start, 0, bound, seen)
+        if found:
+            return visited_order, parent
+        if t == float("inf"):
             break
+        bound = t
 
-    return total_visited, final_parent
+    return visited_order, parent
 
 
-def bidirectional_bfs(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord], Dict[Coord, Optional[Coord]]]:
-    """
-    Bidirectional BFS (uninformed). Reconstructs path via meeting point.
-    """
-    if start == goal:
-        return [start], {start: None}
+# -------------------------
+# Randomized: Stochastic DFS / Random Walk
+# -------------------------
 
-    q1 = deque([start])
-    q2 = deque([goal])
-
-    parent1 = {start: None}
-    parent2 = {goal: None}
-
-    visited_order = []
-
-    meeting: Optional[Coord] = None
-
-    while q1 and q2:
-        # Expand from start side
-        for _ in range(len(q1)):
-            cur = q1.popleft()
-            visited_order.append(cur)
-            for nb in neighbors_4(grid, cur):
-                if nb not in parent1:
-                    parent1[nb] = cur
-                    q1.append(nb)
-                    if nb in parent2:
-                        meeting = nb
-                        break
-            if meeting:
-                break
-        if meeting:
-            break
-
-        # Expand from goal side
-        for _ in range(len(q2)):
-            cur = q2.popleft()
-            visited_order.append(cur)
-            for nb in neighbors_4(grid, cur):
-                if nb not in parent2:
-                    parent2[nb] = cur
-                    q2.append(nb)
-                    if nb in parent1:
-                        meeting = nb
-                        break
-            if meeting:
-                break
-
-        if meeting:
-            break
-
-    if not meeting:
-        # no connection
-        return visited_order, parent1
-
-    # Build combined parent map for standard reconstruct
-    # Path: start -> meeting using parent1; meeting -> goal using parent2
-    # parent2 stores edges from goal backward; we need forward from meeting to goal
-    path1 = reconstruct_path(parent1, start, meeting)
-    # reconstruct from goal to meeting then reverse
-    back = reconstruct_path(parent2, goal, meeting)
-    back.reverse()  # meeting -> goal
-
-    full_path = path1 + back[1:]  # avoid duplicating meeting node
-
-    # create a parent map that represents the final path (optional)
+def stochastic_dfs(grid: Grid, start: Coord, goal: Coord, seed: Optional[int] = None):
+    rng = random.Random(seed)
+    stack = [start]
     parent = {start: None}
-    for i in range(1, len(full_path)):
-        parent[full_path[i]] = full_path[i - 1]
+    visited_order = []
+    seen = set()
+
+    while stack:
+        cur = stack.pop()
+        if cur in seen:
+            continue
+        seen.add(cur)
+        visited_order.append(cur)
+        if cur == goal:
+            break
+
+        nbs = neighbors_4(grid, cur)
+        rng.shuffle(nbs)
+        for nb in nbs:
+            if nb not in parent:
+                parent[nb] = cur
+            stack.append(nb)
+
+    return visited_order, parent
+
+
+def random_walk(grid: Grid, start: Coord, goal: Coord, max_steps: int = 800, seed: Optional[int] = None):
+    rng = random.Random(seed)
+    cur = start
+    visited_order = [cur]
+    parent = {start: None}
+
+    for _ in range(max_steps):
+        if cur == goal:
+            break
+        nbs = neighbors_4(grid, cur)
+        if not nbs:
+            break
+        nxt = rng.choice(nbs)
+        if nxt not in parent:
+            parent[nxt] = cur
+        cur = nxt
+        visited_order.append(cur)
+
+    return visited_order, parent
+
+
+# -------------------------
+# Local Search: Hill Climb / Random Restart / Simulated Annealing
+# -------------------------
+
+def steepest_hill_climb(grid: Grid, start: Coord, goal: Coord, h_fn, max_steps: int = 800):
+    cur = start
+    parent = {start: None}
+    visited_order = [cur]
+
+    for _ in range(max_steps):
+        if cur == goal:
+            break
+        nbs = neighbors_4(grid, cur)
+        if not nbs:
+            break
+
+        # pick neighbor with lowest heuristic
+        best = min(nbs, key=lambda x: h_fn(x, goal))
+
+        # if no improvement, stop (local min / plateau)
+        if h_fn(best, goal) >= h_fn(cur, goal):
+            break
+
+        if best not in parent:
+            parent[best] = cur
+        cur = best
+        visited_order.append(cur)
+
+    return visited_order, parent
+
+
+def random_restart_hill_climb(
+    grid: Grid, start: Coord, goal: Coord, h_fn,
+    restarts: int = 15, max_steps: int = 400, seed: Optional[int] = None
+):
+    rng = random.Random(seed)
+    rows, cols = len(grid), len(grid[0])
+    candidates = [(r, c) for r in range(rows) for c in range(cols) if not is_wall(grid, r, c)]
+
+    best_parent = {start: None}
+    best_visit = [start]
+    best_end = start
+
+    for _ in range(max(1, restarts)):
+        s = start if rng.random() < 0.5 else rng.choice(candidates)
+        visit, parent = steepest_hill_climb(grid, s, goal, h_fn, max_steps=max_steps)
+        end = visit[-1] if visit else s
+
+        if h_fn(end, goal) < h_fn(best_end, goal):
+            best_end = end
+            best_visit = visit if visit else [s]
+            best_parent = parent
+
+        if best_end == goal:
+            break
+
+    return best_visit, best_parent
+
+
+def simulated_annealing(
+    grid: Grid, start: Coord, goal: Coord, h_fn,
+    max_steps: int = 800, temperature: float = 1.0, cooling: float = 0.995,
+    seed: Optional[int] = None
+):
+    rng = random.Random(seed)
+    cur = start
+    parent = {start: None}
+    visited_order = [cur]
+
+    T = max(1e-6, float(temperature))
+    cooling = float(cooling)
+
+    def accept(delta: float, temp: float) -> bool:
+        if delta < 0:
+            return True
+        return rng.random() < math.exp(-delta / max(1e-9, temp))
+
+    for _ in range(max_steps):
+        if cur == goal:
+            break
+        nbs = neighbors_4(grid, cur)
+        if not nbs:
+            break
+
+        nxt = rng.choice(nbs)
+        delta = h_fn(nxt, goal) - h_fn(cur, goal)  # >0 worse, <0 better
+
+        if accept(delta, T):
+            if nxt not in parent:
+                parent[nxt] = cur
+            cur = nxt
+            visited_order.append(cur)
+
+        T *= cooling
+        if T < 1e-6:
+            T = 1e-6
+
+    return visited_order, parent
+
+
+# -------------------------
+# Beam Search (informed)
+# -------------------------
+
+def beam_search(grid: Grid, start: Coord, goal: Coord, h_fn, beam_width: int = 5, max_steps: int = 3000):
+    K = max(1, int(beam_width))
+    frontier = [start]
+    parent = {start: None}
+    visited_order = [start]
+    seen = set([start])
+
+    steps = 0
+    while frontier and steps < max_steps:
+        steps += 1
+        if goal in frontier:
+            break
+
+        candidates = []
+        for cur in frontier:
+            for nb in neighbors_4(grid, cur):
+                if nb not in seen:
+                    seen.add(nb)
+                    parent[nb] = cur
+                    candidates.append(nb)
+                    visited_order.append(nb)
+
+        if not candidates:
+            break
+
+        candidates.sort(key=lambda x: h_fn(x, goal))
+        frontier = candidates[:K]
 
     return visited_order, parent
 
@@ -355,7 +601,7 @@ def run_search(
     visited_order: List[Coord] = []
     parent: Dict[Coord, Optional[Coord]] = {start: None}
 
-    # ---- Dispatch ----
+    # Dispatch
     if algo == "bfs":
         visited_order, parent = bfs(grid, start, goal)
 
@@ -382,16 +628,38 @@ def run_search(
     elif algo == "astar":
         visited_order, parent = astar(grid, start, goal, h_fn)
 
-    # If you haven't added these functions yet, DON'T include them here.
-    # Add them only once you implement them:
-    # elif algo == "wastar": ...
-    # elif algo == "idastar": ...
-    # elif algo == "beam": ...
-    # elif algo == "sdfs": ...
-    # elif algo == "rwalk": ...
-    # elif algo == "hill": ...
-    # elif algo == "rrhill": ...
-    # elif algo == "anneal": ...
+    elif algo == "wastar":
+        w = float(params.get("weight", 1.6))
+        visited_order, parent = weighted_astar(grid, start, goal, h_fn, w)
+
+    elif algo == "idastar":
+        visited_order, parent = ida_star(grid, start, goal, h_fn)
+
+    elif algo == "beam":
+        bw = int(params.get("beam_width", 5))
+        visited_order, parent = beam_search(grid, start, goal, h_fn, beam_width=bw)
+
+    elif algo == "sdfs":
+        visited_order, parent = stochastic_dfs(grid, start, goal)
+
+    elif algo == "rwalk":
+        steps = int(params.get("max_steps", 800))
+        visited_order, parent = random_walk(grid, start, goal, max_steps=steps)
+
+    elif algo == "hill":
+        steps = int(params.get("max_steps", 800))
+        visited_order, parent = steepest_hill_climb(grid, start, goal, h_fn, max_steps=steps)
+
+    elif algo == "rrhill":
+        steps = int(params.get("max_steps", 400))
+        restarts = int(params.get("restarts", 15))
+        visited_order, parent = random_restart_hill_climb(grid, start, goal, h_fn, restarts=restarts, max_steps=steps)
+
+    elif algo == "anneal":
+        steps = int(params.get("max_steps", 800))
+        temp = float(params.get("temperature", 1.0))
+        cooling = float(params.get("cooling", 0.995))
+        visited_order, parent = simulated_annealing(grid, start, goal, h_fn, max_steps=steps, temperature=temp, cooling=cooling)
 
     else:
         return SearchResult(
@@ -409,7 +677,7 @@ def run_search(
 
     stats = {
         "algorithm": algo,
-        "heuristic": heuristic if algo in ("astar", "greedy") else None,
+        "heuristic": heuristic if algo in ("astar", "greedy", "wastar", "idastar", "beam", "hill", "rrhill", "anneal") else None,
         "nodes_expanded": len(visited_order),
         "path_length": len(path) - 1 if found else 0,
         "found": found,
