@@ -1,0 +1,296 @@
+/* Overall dark theme */
+.game-body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background-color: #121212; /* dark background */
+  color: #f5f5f5;
+}
+
+/* Layout */
+.game-page {
+  max-width: 1100px;
+  margin: 20px auto;
+  padding: 24px;
+  background: #1e1e1e;
+  border-radius: 16px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+  border: 1px solid #2d2d2d;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.game-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: #b0b0b0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Buttons */
+.btn-primary,
+.btn-secondary,
+.btn-drop {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid #f5c842;
+  background: #f5c842; /* matte yellow */
+  color: #1a1a1a;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease, color 0.15s ease;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-drop:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(245, 200, 66, 0.35);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: #f5c842;
+}
+
+.btn-secondary:hover {
+  background: rgba(245, 200, 66, 0.08);
+}
+
+/* Main layout with avatars + board */
+.game-main {
+  display: grid;
+  grid-template-columns: 1fr 2.4fr 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+/* Avatars */
+.player-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-wrapper {
+  text-align: center;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 3px solid #f5c842;
+  background: #2b2b2b;
+  padding: 10px;
+  object-fit: contain;
+  transition: transform 0.25s ease, box-shadow 0.25s ease,
+    border-color 0.25s ease;
+  box-shadow: 0 0 0 rgba(245, 200, 66, 0.0);
+}
+
+.avatar-label {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #dddddd;
+}
+
+/* Active turn: zoom + glow */
+.avatar.active {
+  transform: scale(1.12);
+  border-color: #f5c842;
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.6);
+}
+
+/* Board section */
+.board-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Status bar */
+#status-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+#status {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* AI thinking indicator */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #f5c842;
+}
+
+.thinking-indicator.hidden {
+  display: none;
+}
+
+.thinking-indicator .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f5c842;
+  animation: thinking-bounce 0.9s infinite alternate;
+}
+
+.thinking-indicator .dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking-indicator .dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes thinking-bounce {
+  from {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  to {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Board container */
+.board-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Column drop buttons */
+.column-header-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.btn-drop {
+  width: 60px;
+  height: 32px;
+  margin: 0 2px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Board frame */
+.board-frame {
+  background: #101010;
+  padding: 12px;
+  border-radius: 16px;
+  border: 2px solid #2b2b2b;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7);
+}
+
+/* Actual grid */
+.board-table {
+  border-collapse: collapse;
+}
+
+.cell {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid #303030;
+  background-color: #1c1c1c; /* hole background */
+  box-sizing: border-box;
+}
+
+/* Discs */
+.cell.player {
+  background-color: #1e88e5; /* blue */
+  box-shadow: 0 0 12px rgba(30, 136, 229, 0.7);
+}
+
+.cell.ai {
+  background-color: #e53935; /* red */
+  box-shadow: 0 0 12px rgba(229, 57, 53, 0.7);
+}
+
+.cell.empty {
+  background-color: #1c1c1c;
+}
+
+/* Legend */
+.legend {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  font-size: 0.9rem;
+  color: #bbbbbb;
+  justify-content: center;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disc {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.disc-player {
+  background-color: #1e88e5;
+}
+
+.disc-ai {
+  background-color: #e53935;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .game-page {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .game-main {
+    grid-template-columns: 1fr;
+  }
+
+  .player-panel {
+    order: 2;
+  }
+
+  .board-section {
+    order: 1;
+  }
+}

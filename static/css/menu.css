@@ -1,0 +1,264 @@
+/* Landing (home) page */
+
+.landing-body {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  background: radial-gradient(
+      circle at top right,
+      #ffe47c 0%,
+      #f5c842 35%,
+      #e0b133 100%
+    );
+  color: #f5f5f5;
+}
+
+.landing-page {
+  flex: 1;
+  max-width: 1100px;
+  margin: 24px;
+  padding: 28px;
+  background: rgba(18, 18, 18, 0.96);
+  border-radius: 18px;
+  border: 1px solid #2d2d2d;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8);
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure content stretches and footer sticks to bottom inside rectangle */
+.landing-main {
+  flex: 1;
+}
+
+/* Header */
+.landing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #f5c842;
+  color: #191919;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: 0 0 18px rgba(245, 200, 66, 0.55);
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.brand-text p {
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+  color: #bbbbbb;
+}
+
+.ghost-link {
+  font-size: 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #f5c842;
+  padding: 7px 14px;
+  text-decoration: none;
+  color: #f5c842;
+  background: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.ghost-link:hover {
+  background: rgba(245, 200, 66, 0.08);
+  box-shadow: 0 0 15px rgba(245, 200, 66, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Hero section */
+.hero {
+  margin-bottom: 24px;
+}
+
+.hero h2 {
+  margin: 0 0 6px;
+  font-size: 1.4rem;
+}
+
+.hero p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #c0c0c0;
+}
+
+/* Modes grid */
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+/* Card container */
+.mode-card {
+  position: relative;
+  padding: 2px; /* for the outer glow border */
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at top left, #f5c84233, #1e1e1e);
+  transform: translateY(0);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Glow outline layer (animated like bright board edges) */
+.mode-outline {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  border: 2px solid transparent;
+  background: linear-gradient(
+      135deg,
+      rgba(245, 200, 66, 0.9),
+      rgba(255, 255, 255, 0.15),
+      rgba(245, 200, 66, 0.6)
+    );
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.mode-content {
+  position: relative;
+  background: #1a1a1a;
+  border-radius: 16px;
+  padding: 16px 16px 18px; /* extra bottom padding so button never clips */
+  border: 1px solid #333333;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;          /* space between text, tag, button */
+  justify-content: flex-start; /* no more space-between squish */
+}
+
+/* Hover interaction = card lifts + glow outline */
+.mode-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.9);
+}
+
+.mode-card:hover .mode-outline {
+  opacity: 0.8;
+}
+
+/* Heading & text */
+.mode-content h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.mode-content p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #c8c8c8;
+}
+
+/* Tag and button */
+.mode-tag {
+  display: inline-block;
+  margin-top: 4px;
+  margin-bottom: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(245, 200, 66, 0.14);
+  border: 1px solid rgba(245, 200, 66, 0.5);
+  font-size: 0.75rem;
+  color: #fce58f;
+}
+
+.mode-btn {
+  align-self: flex-start;
+  margin-top: 4px;     /* more breathing room above button */
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #f5c842;
+  background: #f5c842;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.mode-btn:hover {
+  box-shadow: 0 6px 18px rgba(245, 200, 66, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Footer pinned to bottom inside rectangle */
+.landing-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  font-size: 0.8rem;
+  color: #a5a5a5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1px solid #2a2a2a;
+}
+
+/* Fun subtle float animation for cards */
+.mode-card:nth-child(1) {
+  animation: float-card 6s ease-in-out infinite;
+}
+.mode-card:nth-child(2) {
+  animation: float-card 6.5s ease-in-out infinite;
+}
+.mode-card:nth-child(3) {
+  animation: float-card 7s ease-in-out infinite;
+}
+
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .landing-page {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .landing-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .hero h2 {
+    font-size: 1.2rem;
+  }
+}

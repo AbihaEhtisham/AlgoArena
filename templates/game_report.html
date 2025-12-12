@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Connect4 - AI Progress Report</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/global.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/report.css') }}"
+    />
+  </head>
+  <body class="report-body">
+    <div class="report-page">
+      <header class="report-header">
+        <div>
+          <h1>AI Progress Report</h1>
+          <p>
+            Multi-agent analysis of the Connect4 learning AI
+          </p>
+        </div>
+        <div class="report-actions">
+          <a href="{{ url_for('connect4') }}">Play Again</a>
+          <a href="{{ url_for('index') }}">Main Menu</a>
+        </div>
+      </header>
+
+      <p>
+        <strong>Last Game Result:</strong>
+        {% if report.last_result %}
+          {{ report.last_result | capitalize }}
+        {% else %}
+          No games played yet.
+        {% endif %}
+      </p>
+
+      {% set lg = report.last_game %}
+      {% set hist = report.history %}
+
+      <div class="card-grid">
+        <section class="card">
+          <h2>Overall Performance</h2>
+          <ul>
+            <li>Total games played: {{ report.games_played }}</li>
+            <li>AI wins: {{ report.ai_wins }}</li>
+            <li>Player wins: {{ report.player_wins }}</li>
+            <li>Draws: {{ report.draws }}</li>
+            <li>AI win rate: {{ report.ai_win_rate }}%</li>
+            <li>
+              Current minimax search depth:
+              {{ report.current_depth }}
+            </li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Last Game Breakdown</h2>
+          <ul>
+            <li>AI result: {{ lg.result | capitalize }}</li>
+            <li>AI moves played: {{ lg.moves }}</li>
+            <li>Estimated mistakes: {{ lg.mistakes }}</li>
+            <li>Estimated blunders: {{ lg.blunders }}</li>
+            <li>
+              Efficiency (0–100%):
+              {{ (lg.efficiency * 100) | round(2) if lg.efficiency is not none else "N/A" }}
+            </li>
+            <li>
+              Average search depth:
+              {{ lg.avg_depth | round(2) }}
+            </li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Historical Averages</h2>
+          <ul>
+            <li>Games in history: {{ hist.total_games }}</li>
+            <li>Avg mistakes per game: {{ hist.avg_mistakes | round(2) }}</li>
+            <li>Avg blunders per game: {{ hist.avg_blunders | round(2) }}</li>
+            <li>
+              Avg efficiency:
+              {{ (hist.avg_efficiency * 100) | round(2) }}%
+            </li>
+            <li>
+              Avg search depth:
+              {{ hist.avg_depth | round(2) }}
+            </li>
+          </ul>
+        </section>
+
+        <section class="card">
+          <h2>Learned Player Behaviour</h2>
+          <p style="margin-bottom: 6px;">
+            Moves by column (0–6) across all games:
+          </p>
+          {% if report.player_column_counts %}
+          <ul>
+            {% for count in report.player_column_counts %}
+            <li>Column {{ loop.index0 }}: {{ count }} moves</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p>No moves recorded yet.</p>
+          {% endif %}
+        </section>
+      </div>
+
+      <section class="explainer">
+        <p>
+          <strong>Mistakes</strong> are moves after which the evaluated
+          position becomes worse for the AI. Large evaluation drops are
+          counted as <strong>blunders</strong>. The
+          <strong>efficiency</strong> metric penalizes games with many
+          mistakes and blunders and stays closer to 1.0 (100%) when the AI
+          plays consistently strong moves.
+        </p>
+        <p>
+          Architecturally, you can describe this as a
+          <strong>multi-agent AI system</strong>: one agent plays the game
+          (minimax), one agent models the opponent's behaviour, and another
+          agent evaluates and explains the AI's own decisions over time.
+        </p>
+      </section>
+    </div>
+  </body>
+</html>

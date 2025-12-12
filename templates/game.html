@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Connect4 - Player vs AI</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/global.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/game.css') }}"
+    />
+  </head>
+  <body class="game-body">
+    <div class="game-page">
+      <header class="game-header">
+        <div>
+          <h1>Connect4: Player vs Learning AI</h1>
+          <p class="subtitle">Dark grid. Smart AI. Adaptive learning.</p>
+        </div>
+        <div class="header-actions">
+          <button id="resetBtn" class="btn-primary">New Game</button>
+          <a href="{{ url_for('index') }}" class="btn-secondary">Back to Menu</a>
+        </div>
+      </header>
+
+      <main class="game-main">
+        <!-- Left: AI avatar -->
+        <aside class="player-panel ai-panel">
+          <div class="avatar-wrapper">
+            <img
+              id="aiAvatar"
+              class="avatar avatar-ai"
+              src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}"
+              alt="AI"
+            />
+            <div class="avatar-label">AI</div>
+          </div>
+        </aside>
+
+        <!-- Center: Board -->
+        <section class="board-section">
+          <div id="status-bar">
+            <div id="status">Your turn. Click a column.</div>
+            <div id="thinkingIndicator" class="thinking-indicator hidden">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="thinking-text">AI is thinking...</span>
+            </div>
+          </div>
+
+          <div
+            id="board"
+            class="board-container"
+            data-rows="{{ rows }}"
+            data-cols="{{ cols }}"
+          >
+            <div class="column-header-row">
+              {% for c in range(cols) %}
+              <button
+                class="column-header btn-drop"
+                data-col="{{ c }}"
+                aria-label="Drop in column {{ c }}"
+              >
+                ▼
+              </button>
+              {% endfor %}
+            </div>
+
+            <div class="board-frame">
+              <table class="board-table">
+                {% for r in range(rows) %}
+                <tr>
+                  {% for c in range(cols) %}
+                  <td id="cell-{{ r }}-{{ c }}" class="cell empty"></td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </table>
+            </div>
+          </div>
+
+          <div class="legend">
+            <span class="legend-item">
+              <span class="disc disc-player"></span> You (Blue)
+            </span>
+            <span class="legend-item">
+              <span class="disc disc-ai"></span> AI (Red)
+            </span>
+          </div>
+        </section>
+
+        <!-- Right: Human avatar -->
+        <aside class="player-panel human-panel">
+          <div class="avatar-wrapper">
+            <img
+              id="humanAvatar"
+              class="avatar avatar-human active"
+              src="{{ url_for('static', filename='assets/icons/human_icon.png') }}"
+              alt="You"
+            />
+            <div class="avatar-label">You</div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game/connect4_core.js') }}"></script>
+  </body>
+</html>

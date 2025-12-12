@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AlgoArena - Home</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/global.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/menu.css') }}"
+    />
+  </head>
+  <body class="landing-body">
+    <div class="landing-page">
+      <header class="landing-header">
+        <div class="brand">
+          <div class="brand-logo">AA</div>
+          <div class="brand-text">
+            <h1>AlgoArena</h1>
+            <p>AI-powered arena for algorithms, games & learning.</p>
+          </div>
+        </div>
+        <a href="{{ url_for('connect4') }}" class="ghost-link">
+          Jump into Game →
+        </a>
+      </header>
+
+      <main class="landing-main">
+        <section class="hero">
+          <h2>Choose how you want to think with AI</h2>
+          <p>
+            Visualize search algorithms, play against a learning Connect4 AI,
+            or learn concepts with an AI tutor.
+          </p>
+        </section>
+
+        <section class="mode-grid">
+          <!-- Visualizer card -->
+          <a href="{{ url_for('visualizer') }}" class="mode-card">
+            <div class="mode-outline"></div>
+            <div class="mode-content">
+              <h3>Algorithm Visualizer</h3>
+              <p>
+                Watch BFS, DFS, A*, and more explore a grid in real time with
+                glowing paths and step-by-step animations.
+              </p>
+              <span class="mode-tag">Pathfinding · Heuristics</span>
+              <button class="mode-btn">Open Visualizer</button>
+            </div>
+          </a>
+
+          <!-- Game card -->
+          <a href="{{ url_for('connect4') }}" class="mode-card">
+            <div class="mode-outline"></div>
+            <div class="mode-content">
+              <h3>Play the Learning AI</h3>
+              <p>
+                Challenge an adaptive Connect4 agent that tracks your style,
+                adjusts difficulty, and explains its own progress.
+              </p>
+              <span class="mode-tag">Adversarial · Multi-Agent</span>
+              <button class="mode-btn">Play Connect4</button>
+            </div>
+          </a>
+
+          <!-- Learn with AI card (now active) -->
+          <a href="{{ url_for('learn_with_ai') }}" class="mode-card">
+            <div class="mode-outline"></div>
+            <div class="mode-content">
+              <h3>Learn with AI</h3>
+              <p>
+                Interactive lessons where an AI tutor explains algorithm runs,
+                quizzes you, and adapts to your understanding.
+              </p>
+              <span class="mode-tag">Tutor · Explanations</span>
+              <button class="mode-btn">Open Tutor</button>
+            </div>
+          </a>
+        </section>
+      </main>
+
+      <footer class="landing-footer">
+        <span>Designed for AI End-Semester Project</span>
+        <span class="dot-separator">•</span>
+        <span>Dark mode · Matte yellow highlights · Multi-agent AI</span>
+      </footer>
+    </div>
+  </body>
+</html>

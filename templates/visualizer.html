@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AlgoArena - Algorithm Visualizer</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/global.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/visualizer.css') }}"
+    />
+  </head>
+  <body class="visualizer-body">
+    <div class="visualizer-page">
+      <header class="visualizer-header">
+        <div class="vh-left">
+          <h1>Algorithm Visualizer</h1>
+          <p>
+            Watch search algorithms explore a grid, then let an AI agent explain
+            what happened.
+          </p>
+        </div>
+        <div class="vh-right">
+          <a href="{{ url_for('index') }}" class="btn-secondary">Back to Menu</a>
+        </div>
+      </header>
+
+      <main class="visualizer-main">
+        <section class="controls-panel">
+          <div class="controls-row">
+            <div class="control-group">
+              <label class="control-label" for="algorithmSelect">Algorithm</label>
+              <select id="algorithmSelect" class="select-input">
+                <option value="bfs">Breadth-First Search (BFS)</option>
+                <option value="dfs">Depth-First Search (DFS)</option>
+                <option value="astar">A* Search</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="heuristicSelect">
+                Heuristic
+                <span class="hint-text">(for A* only)</span>
+              </label>
+              <select id="heuristicSelect" class="select-input">
+                <option value="manhattan">Manhattan</option>
+                <option value="euclidean">Euclidean</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <span class="control-label">Tools</span>
+              <div class="tool-buttons">
+                <button class="tool-btn selected" data-tool="wall">Wall</button>
+                <button class="tool-btn" data-tool="start">Start</button>
+                <button class="tool-btn" data-tool="goal">Goal</button>
+                <button class="tool-btn" data-tool="erase">Erase</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="control-group">
+              <span class="control-label">Mazes &amp; Patterns</span>
+
+              <div class="dropdown">
+                <button
+                  id="mazeDropdownBtn"
+                  class="btn-primary dropdown-toggle"
+                  type="button"
+                >
+                  Mazes &amp; Patterns ▾
+                </button>
+                <div id="mazeDropdownMenu" class="dropdown-menu">
+                  <button class="dropdown-item" data-maze="random">
+                    Basic Random Maze
+                  </button>
+                  <button class="dropdown-item" data-maze="box">
+                    Box Maze
+                  </button>
+                  <button class="dropdown-item" data-maze="stair">
+                    Simple Stair Pattern
+                  </button>
+                  <button class="dropdown-item" data-maze="clear">
+                    Clear All Walls
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-group action-group">
+              <span class="control-label">Run</span>
+              <div class="run-buttons">
+                <button id="runBtn" class="btn-primary">Run Algorithm</button>
+                <button id="clearBtn" class="btn-secondary">Clear Grid</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <span id="runStatus">
+              Click cells to edit the grid, choose an algorithm, then press
+              "Run".
+            </span>
+          </div>
+        </section>
+
+        <section class="board-panel">
+          <div
+            id="grid"
+            data-rows="15"
+            data-cols="25"
+          ></div>
+
+          <div class="results-panel">
+            <h2>Run Summary</h2>
+            <div class="results-grid">
+              <div class="result-item">
+                <span class="label">Nodes expanded</span>
+                <span class="value" id="nodesExpanded">-</span>
+              </div>
+              <div class="result-item">
+                <span class="label">Path length</span>
+                <span class="value" id="pathLength">-</span>
+              </div>
+              <div class="result-item">
+                <span class="label">Found path</span>
+                <span class="value" id="foundPath">-</span>
+              </div>
+            </div>
+            <p
+              id="reportLinkWrapper"
+              class="report-link-wrapper"
+              style="display: none"
+            >
+              <a href="{{ url_for('visualizer_report') }}" class="report-link">
+                View AI explanation report →
+              </a>
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/visualizer/visualizer_core.js') }}"></script>
+  </body>
+</html>
