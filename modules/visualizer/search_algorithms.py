@@ -92,9 +92,105 @@ def h_euclidean(a: Coord, b: Coord) -> float:
     return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 
-def get_heuristic_fn(name: str) -> Callable[[Coord, Coord], float]:
-    if name == "euclidean":
+def h_chebyshev(a: Coord, b: Coord) -> float:
+    # diagonal distance for 8-direction movement (max(dx, dy))
+    dx = abs(a[0] - b[0])
+    dy = abs(a[1] - b[1])
+    return max(dx, dy)
+
+
+def h_octile(a: Coord, b: Coord) -> float:
+    # for 8-direction movement with costs: D=1, D2=sqrt(2)
+    # still usable as a "what if" heuristic even on 4-neighbor grids
+    dx = abs(a[0] - b[0])
+    dy = abs(a[1] - b[1])
+    D = 1.0
+    D2 = math.sqrt(2.0)
+    return D * (dx + dy) + (D2 - 2 * D) * min(dx, dy)
+
+
+def h_overestimate(base_fn: Callable[[Coord, Coord], float], factor: float) -> Callable[[Coord, Coord], float]:
+    factor = float(factor)
+    if factor <= 1.0:
+        factor = 1.25  # ensure inadmissible behavior by default
+    def _h(a: Coord, b: Coord) -> float:
+        return factor * base_fn(a, b)
+    return _h
+
+
+def h_wall_penalty(grid: Grid, base_fn: Callable[[Coord, Coord], float], penalty: float = 0.15) -> Callable[[Coord, Coord], float]:
+    """
+    A grid-appropriate 'informed' heuristic booster:
+    adds small penalty proportional to local wall density around current node.
+    Not admissible (can overestimate), but nice for demo.
+    """
+    penalty = float(penalty)
+
+    def wall_density(node: Coord) -> float:
+        r, c = node
+        rows, cols = len(grid), len(grid[0])
+        count = 0
+        total = 0
+        for dr in (-1, 0, 1):
+            for dc in (-1, 0, 1):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < rows and 0 <= nc < cols:
+                    total += 1
+                    if grid[nr][nc] == 1:
+                        count += 1
+        if total == 0:
+            return 0.0
+        return count / total
+
+    def _h(a: Coord, b: Coord) -> float:
+        return base_fn(a, b) + penalty * wall_density(a) * base_fn(a, b)
+
+    return _h
+
+
+def get_heuristic_fn(name: str, grid: Optional[Grid] = None) -> Callable[[Coord, Coord], float]:
+    """
+    Returns a function h(node, goal) -> float.
+    Some heuristics use the grid (e.g. wall penalty).
+    """
+    n = (name or "").strip().lower()
+    n = n.replace(" ", "").replace("-", "").replace("_", "")
+
+    if n in ("euclidean", "l2"):
         return h_euclidean
+
+    if n in ("chebyshev", "diagonal", "chess"):
+        return h_chebyshev
+
+    if n in ("octile", "octiledistance"):
+        return h_octile
+
+    if n in ("manhattan", "l1"):
+        return h_manhattan
+
+    # "tie-breaker" variant:
+    # We'll implement tie-breaking inside A* by adding a tiny epsilon * h
+    # but we still keep base heuristic here.
+    if n in ("tiebreaker", "tiebreak"):
+        return h_manhattan
+
+    # Overestimating heuristic (inadmissible)
+    if n in ("overestimate", "inadmissible"):
+        # default: 1.4 * manhattan
+        return h_overestimate(h_manhattan, factor=1.4)
+
+    # "linear conflict" is not really meaningful for grid mazes.
+    # We'll provide a grid version: wall-penalty heuristic (inadmissible but informative).
+    if n in ("linearconflict", "manhattanlinearconflict", "wallpenalty"):
+        if grid is None:
+            return h_manhattan
+        return h_wall_penalty(grid, h_manhattan, penalty=0.20)
+
+    # relaxed heuristic (for demo): pretend you can move diagonally -> octile
+    if n in ("relaxed", "relax", "diagonalrelaxed"):
+        return h_octile
+
+    # fallback
     return h_manhattan
 
 
@@ -294,8 +390,9 @@ def greedy_best_first(grid: Grid, start: Coord, goal: Coord, h_fn):
     return visited_order, parent
 
 
-def astar(grid: Grid, start: Coord, goal: Coord, h_fn):
-    pq = [(h_fn(start, goal), 0, start)]  # (f,g,node)
+def astar(grid: Grid, start: Coord, goal: Coord, h_fn, tie_break: bool = False):
+    eps = 1e-4 if tie_break else 0.0
+    pq = [(h_fn(start, goal) + eps * h_fn(start, goal), 0, start)]  # (f, g, node)
     parent = {start: None}
     g_score = {start: 0}
     visited_order = []
@@ -316,15 +413,19 @@ def astar(grid: Grid, start: Coord, goal: Coord, h_fn):
             if nb not in g_score or ng < g_score[nb]:
                 g_score[nb] = ng
                 parent[nb] = cur
-                f = ng + h_fn(nb, goal)
+                h = h_fn(nb, goal)
+                f = ng + h + eps * h
                 heapq.heappush(pq, (f, ng, nb))
 
     return visited_order, parent
 
 
-def weighted_astar(grid: Grid, start: Coord, goal: Coord, h_fn, w: float):
+
+def weighted_astar(grid: Grid, start: Coord, goal: Coord, h_fn, w: float, tie_break: bool = False):
     w = max(1.0, float(w))
-    pq = [(w * h_fn(start, goal), 0, start)]
+    eps = 1e-4 if tie_break else 0.0
+    start_h = h_fn(start, goal)
+    pq = [(w * start_h + eps * start_h, 0, start)]
     parent = {start: None}
     g_score = {start: 0}
     visited_order = []
@@ -345,10 +446,12 @@ def weighted_astar(grid: Grid, start: Coord, goal: Coord, h_fn, w: float):
             if nb not in g_score or ng < g_score[nb]:
                 g_score[nb] = ng
                 parent[nb] = cur
-                f = ng + w * h_fn(nb, goal)
+                h = h_fn(nb, goal)
+                f = ng + w * h + eps * h
                 heapq.heappush(pq, (f, ng, nb))
 
     return visited_order, parent
+
 
 
 # -------------------------
@@ -595,11 +698,12 @@ def run_search(
     params = params or {}
     t0 = time.perf_counter()
 
-    h_fn = get_heuristic_fn(heuristic)
+    h_fn = get_heuristic_fn(heuristic, grid=grid)
     algo = normalize_algo(algorithm)
 
     visited_order: List[Coord] = []
     parent: Dict[Coord, Optional[Coord]] = {start: None}
+    tie_break = (heuristic or "").strip().lower().replace(" ", "").replace("-", "").replace("_", "") in ("tiebreaker", "tiebreak")
 
     # Dispatch
     if algo == "bfs":
@@ -626,11 +730,12 @@ def run_search(
         visited_order, parent = greedy_best_first(grid, start, goal, h_fn)
 
     elif algo == "astar":
-        visited_order, parent = astar(grid, start, goal, h_fn)
+        visited_order, parent = astar(grid, start, goal, h_fn, tie_break=tie_break)
+
 
     elif algo == "wastar":
         w = float(params.get("weight", 1.6))
-        visited_order, parent = weighted_astar(grid, start, goal, h_fn, w)
+        visited_order, parent = weighted_astar(grid, start, goal, h_fn, w, tie_break=tie_break)
 
     elif algo == "idastar":
         visited_order, parent = ida_star(grid, start, goal, h_fn)

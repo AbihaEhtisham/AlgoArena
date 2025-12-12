@@ -213,6 +213,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+
+  function setWall(r, c) {
+  const isStart = startCell && startCell[0] === r && startCell[1] === c;
+  const isGoal = goalCell && goalCell[0] === r && goalCell[1] === c;
+  if (!isStart && !isGoal) setCell(r, c, 1);
+}
+
+function carve(r, c) {
+  const isStart = startCell && startCell[0] === r && startCell[1] === c;
+  const isGoal = goalCell && goalCell[0] === r && goalCell[1] === c;
+  if (!isStart && !isGoal) setCell(r, c, 0);
+}
+
+function randInt(a, b) {
+  return Math.floor(Math.random() * (b - a + 1)) + a;
+}
+
   function applyMaze(type) {
     if (animating) return;
 
@@ -279,7 +296,210 @@ document.addEventListener("DOMContentLoaded", () => {
       runStatus.textContent = "Cleared all walls. Start and goal were kept.";
     }
 
+    else if (type === "wave") {
+  // Clean base
+  clearNonSpecialCells();
+
+  // Build a sine-like thick wall line across the grid
+  const amplitude = Math.floor(rows * 0.35);
+  const mid = Math.floor(rows / 2);
+  const thickness = 2;
+
+  for (let c = 0; c < cols; c++) {
+    const t = (c / cols) * (Math.PI * 2.2); // number of waves
+    const rCenter = mid + Math.round(Math.sin(t) * amplitude);
+
+    for (let dr = -thickness; dr <= thickness; dr++) {
+      const rr = rCenter + dr;
+      if (rr > 0 && rr < rows - 1) setWall(rr, c);
+    }
+  }
+
+  runStatus.textContent = "Wave walls generated. Great for A* vs BFS comparison.";
+}
+
+else if (type === "spiral") {
+  clearNonSpecialCells();
+
+  // Fill all as walls first
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const isStart = startCell && startCell[0] === r && startCell[1] === c;
+      const isGoal = goalCell && goalCell[0] === r && goalCell[1] === c;
+      if (!isStart && !isGoal) setCell(r, c, 1);
+    }
+  }
+
+  // Carve spiral corridor
+  let top = 1, left = 1;
+  let bottom = rows - 2, right = cols - 2;
+
+  while (top <= bottom && left <= right) {
+    for (let c = left; c <= right; c++) carve(top, c);
+    top += 2;
+
+    for (let r = top; r <= bottom; r++) carve(r, right);
+    right -= 2;
+
+    if (top <= bottom) {
+      for (let c = right; c >= left; c--) carve(bottom, c);
+      bottom -= 2;
+    }
+
+    if (left <= right) {
+      for (let r = bottom; r >= top; r--) carve(r, left);
+      left += 2;
+    }
+  }
+
+  runStatus.textContent = "Spiral maze generated.";
+}
+
+else if (type === "division") {
+  clearNonSpecialCells();
+
+  // Start with empty grid; add border walls
+  for (let r = 0; r < rows; r++) {
+    setWall(r, 0);
+    setWall(r, cols - 1);
+  }
+  for (let c = 0; c < cols; c++) {
+    setWall(0, c);
+    setWall(rows - 1, c);
+  }
+
+  function divide(x, y, w, h) {
+    if (w < 6 || h < 6) return;
+
+    const horizontal = w < h; // choose cut direction
+    if (horizontal) {
+      const wallY = y + (randInt(1, Math.floor((h - 2) / 2)) * 2);
+      const holeX = x + (randInt(0, Math.floor((w - 2) / 2)) * 2 + 1);
+
+      for (let cx = x; cx < x + w; cx++) {
+        if (cx !== holeX) setWall(wallY, cx);
+      }
+
+      divide(x, y, w, wallY - y);
+      divide(x, wallY + 1, w, y + h - (wallY + 1));
+    } else {
+      const wallX = x + (randInt(1, Math.floor((w - 2) / 2)) * 2);
+      const holeY = y + (randInt(0, Math.floor((h - 2) / 2)) * 2 + 1);
+
+      for (let ry = y; ry < y + h; ry++) {
+        if (ry !== holeY) setWall(ry, wallX);
+      }
+
+      divide(x, y, wallX - x, h);
+      divide(wallX + 1, y, x + w - (wallX + 1), h);
+    }
+  }
+
+  divide(1, 1, cols - 2, rows - 2);
+  runStatus.textContent = "Recursive division maze generated.";
+}
+
+else if (type === "binary") {
+  clearNonSpecialCells();
+
+  // Fill walls on all odd cells (classic maze grid)
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) setWall(r, c);
+  }
+
+  // Carve cells at odd coordinates
+  for (let r = 1; r < rows - 1; r += 2) {
+    for (let c = 1; c < cols - 1; c += 2) {
+      carve(r, c);
+
+      const carveUp = Math.random() < 0.5;
+      if (carveUp && r - 1 > 0) carve(r - 1, c);
+      else if (c + 1 < cols - 1) carve(r, c + 1);
+    }
+  }
+
+  runStatus.textContent = "Binary Tree maze generated.";
+}
+
+else if (type === "sidewinder") {
+  clearNonSpecialCells();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) setWall(r, c);
+  }
+
+  // Carve odd cells
+  for (let r = 1; r < rows - 1; r += 2) {
+    let run = [];
+    for (let c = 1; c < cols - 1; c += 2) {
+      carve(r, c);
+      run.push([r, c]);
+
+      const atEast = (c + 2 >= cols - 1);
+      const atNorth = (r - 2 <= 0);
+      const carveEast = (!atEast && (atNorth || Math.random() < 0.7));
+
+      if (carveEast) {
+        carve(r, c + 1);
+      } else {
+        // carve north from a random cell in run
+        const pick = run[randInt(0, run.length - 1)];
+        if (pick[0] - 1 > 0) carve(pick[0] - 1, pick[1]);
+        run = [];
+      }
+    }
+  }
+
+  runStatus.textContent = "Sidewinder maze generated.";
+}
+
+else if (type === "rooms") {
+  clearNonSpecialCells();
+
+  // Fill everything with walls
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) setWall(r, c);
+  }
+
+  function carveRoom(r0, c0, rh, cw) {
+    for (let r = r0; r < r0 + rh; r++) {
+      for (let c = c0; c < c0 + cw; c++) {
+        if (r > 0 && r < rows - 1 && c > 0 && c < cols - 1) carve(r, c);
+      }
+    }
+  }
+
+  const roomCount = 6;
+  const rooms = [];
+  for (let i = 0; i < roomCount; i++) {
+    const rh = randInt(4, 7);
+    const cw = randInt(6, 10);
+    const r0 = randInt(1, rows - rh - 2);
+    const c0 = randInt(1, cols - cw - 2);
+    carveRoom(r0, c0, rh, cw);
+    rooms.push([r0 + Math.floor(rh / 2), c0 + Math.floor(cw / 2)]);
+  }
+
+  // Connect rooms with corridors
+  for (let i = 1; i < rooms.length; i++) {
+    const [r1, c1] = rooms[i - 1];
+    const [r2, c2] = rooms[i];
+
+    // horizontal then vertical corridor
+    const stepC = c1 <= c2 ? 1 : -1;
+    for (let c = c1; c !== c2; c += stepC) carve(r1, c);
+
+    const stepR = r1 <= r2 ? 1 : -1;
+    for (let r = r1; r !== r2; r += stepR) carve(r, c2);
+  }
+
+  runStatus.textContent = "Rooms + corridors generated.";
+}
+
+
+    clearVisualMarks();
     resetResults();
+
   }
 
   // ---------- Running algorithms ----------

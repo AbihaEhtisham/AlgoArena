@@ -59,8 +59,14 @@
                 <span class="hint-text">(for A* only)</span>
               </label>
               <select id="heuristicSelect" class="select-input">
-                <option value="manhattan">Manhattan</option>
-                <option value="euclidean">Euclidean</option>
+                <option value="manhattan">Manhattan (L1)</option>
+                <option value="euclidean">Euclidean (L2)</option>
+                <option value="chebyshev">Chebyshev / Diagonal</option>
+                <option value="octile">Octile Distance</option>
+                <option value="tiebreaker">Tie-breaker (A*)</option>
+                <option value="linear_conflict">Manhattan + Wall Penalty</option>
+                <option value="relaxed">Relaxed (Diagonal Allowed)</option>
+                <option value="overestimate">Overestimating (Inadmissible)</option>
               </select>
             </div>
 
@@ -97,6 +103,12 @@
                   <button class="dropdown-item" data-maze="stair">
                     Simple Stair Pattern
                   </button>
+                  <button class="dropdown-item" data-maze="wave">Wave Walls</button>
+                  <button class="dropdown-item" data-maze="spiral">Spiral</button>
+                  <button class="dropdown-item" data-maze="division">Recursive Division</button>
+                  <button class="dropdown-item" data-maze="binary">Binary Tree</button>
+                  <button class="dropdown-item" data-maze="sidewinder">Sidewinder</button>
+                  <button class="dropdown-item" data-maze="rooms">Rooms + Corridors</button>
                   <button class="dropdown-item" data-maze="clear">
                     Clear All Walls
                   </button>
