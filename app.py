@@ -21,9 +21,7 @@ from modules.game.connect4_engine import (
     AI_PIECE,
 )
 from modules.game.learning_agent import LearningAgent
-from modules.visualizer.algorithms.bfs import run_bfs
-from modules.visualizer.algorithms.dfs import run_dfs
-from modules.visualizer.algorithms.astar import run_astar
+from modules.visualizer.search_algorithms import run_search
 from modules.visualizer.report_generator import generate_report
 
 
@@ -64,78 +62,37 @@ def visualizer():
     """Visualizer page."""
     return render_template("visualizer.html")
 
+from modules.visualizer.search_algorithms import run_search
+
 @app.route("/api/visualizer/run", methods=["POST"])
 def api_visualizer_run():
-    """
-    Run selected algorithm on the provided grid.
-    Expects JSON:
-    {
-      "grid": [[0/1/2/3,...], ...],
-      "start": [r,c],
-      "goal": [r,c],
-      "algorithm": "bfs" | "dfs" | "astar",
-      "heuristic": "manhattan" | "euclidean"
-    }
-    """
-    data = request.get_json(silent=True) or {}
+    data = request.get_json() or {}
+
     grid = data.get("grid")
     start = data.get("start")
     goal = data.get("goal")
-    algo = (data.get("algorithm") or "").lower()
-    heuristic = (data.get("heuristic") or "manhattan").lower()
+    algorithm = data.get("algorithm", "bfs")
+    heuristic = data.get("heuristic", "manhattan")
 
-    # Basic validation
-    if not isinstance(grid, list) or not grid:
-        return jsonify({"error": "Invalid grid."}), 400
-    if not (isinstance(start, list) and isinstance(goal, list)):
-        return jsonify({"error": "Start/goal missing."}), 400
+    if grid is None or start is None or goal is None:
+        return jsonify({"ok": False, "error": "Missing grid/start/goal"}), 400
 
-    try:
-        start_coord = (int(start[0]), int(start[1]))
-        goal_coord = (int(goal[0]), int(goal[1]))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid start/goal coordinates."}), 400
+    start = (int(start[0]), int(start[1]))
+    goal = (int(goal[0]), int(goal[1]))
 
-    rows = len(grid)
-    cols = len(grid[0])
+    result = run_search(grid, start, goal, algorithm, heuristic)
 
-    sr, sc = start_coord
-    gr, gc = goal_coord
+    if not result.ok:
+        return jsonify({"ok": False, "error": result.stats.get("error", "Error")}), 400
 
-    if not (0 <= sr < rows and 0 <= sc < cols and 0 <= gr < rows and 0 <= gc < cols):
-        return jsonify({"error": "Start/goal out of bounds."}), 400
+    return jsonify({
+        "ok": True,
+        "visited_order": result.visited_order,
+        "path": result.path,
+        "stats": result.stats
+    })
 
-    if grid[sr][sc] == 1 or grid[gr][gc] == 1:
-        return jsonify({"error": "Start/goal cannot be walls."}), 400
 
-    # Run the chosen algorithm
-    if algo == "bfs":
-        result = run_bfs(grid, start_coord, goal_coord)
-    elif algo == "dfs":
-        result = run_dfs(grid, start_coord, goal_coord)
-    elif algo == "astar":
-        result = run_astar(grid, start_coord, goal_coord, heuristic_name=heuristic)
-    else:
-        return jsonify({"error": "Unknown algorithm."}), 400
-
-    stats = result["stats"]
-    report = generate_report(stats)
-
-    # Store report in session for /visualizer/report
-    session["visualizer_report"] = report
-
-    # Make coords JSON-friendly lists
-    visited_order = [[r, c] for (r, c) in result["visited_order"]]
-    path = [[r, c] for (r, c) in result["path"]]
-
-    return jsonify(
-        {
-            "visited_order": visited_order,
-            "path": path,
-            "stats": stats,
-            "ok": True,
-        }
-    )
 
 @app.route("/visualizer/report")
 def visualizer_report():
