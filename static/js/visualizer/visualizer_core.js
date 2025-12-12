@@ -126,17 +126,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- Algorithm / heuristic interaction ----------
 
   function updateHeuristicState() {
-    const algo = algorithmSelect.value;
-    if (algo === "bfs" || algo === "dfs") {
+    const algo = (algorithmSelect.value || "").trim().toLowerCase();
+    const needsHeuristic = (
+      algo === "astar" ||
+      algo === "greedy" ||
+      algo === "wastar" ||
+      algo === "idastar" ||
+      algo === "beam" ||
+      algo === "hill" ||
+      algo === "rrhill" ||
+      algo === "anneal"
+    );
+
+    if (!needsHeuristic) {
       heuristicSelect.classList.add("disabled-heuristic");
       heuristicSelect.dataset.locked = "true";
       runStatus.textContent =
-        "Note: BFS/DFS are uninformed searches and do not use a heuristic.";
+        "Note: This algorithm does not use a heuristic (uninformed or cost-based search).";
     } else {
       heuristicSelect.classList.remove("disabled-heuristic");
       heuristicSelect.dataset.locked = "false";
       runStatus.textContent =
-        "Click cells to edit the grid, choose an algorithm, then press \"Run\".";
+      'Click cells to edit the grid, choose an algorithm, then press "Run".';
     }
   }
 
@@ -288,26 +299,44 @@ document.addEventListener("DOMContentLoaded", () => {
     animating = true;
     clearVisualMarks();
 
-    try {
-      const response = await fetch("/api/visualizer/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          grid,
-          start: startCell,
-          goal: goalCell,
-          algorithm: algo,
-          heuristic,
-        }),
-      });
+  try {
+    const response = await fetch("/api/visualizer/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grid,
+        start: startCell,
+        goal: goalCell,
+        algorithm: algo,
+        heuristic,
+        params: {
+          depth_limit: 25,      // used by DLS
+          weight: 1.6,          // used by Weighted A*
+          beam_width: 5,        // used by Beam Search
+          max_steps: 800,       // used by Random Walk / Local Search
+          temperature: 1.0,     // Simulated Annealing start temp
+          cooling: 0.995        // Simulated Annealing cooling rate
+        }
+      })  // <-- this brace was missing in your code
+    });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.ok) {
-        runStatus.textContent = data.error || "Error running algorithm.";
-        animating = false;
-        return;
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (e) {
+  // if server didn't return JSON
+        data = { ok: false, error: "Server returned a non-JSON error." };
       }
+
+    if (!response.ok || !data.ok) {
+      runStatus.textContent =
+        (data && data.error)
+          ? `Error: ${data.error}`
+          : `Error: Server returned status ${response.status}`;
+      animating = false;
+      return;
+    }
+
 
       const visited = data.visited_order || [];
       const path = data.path || [];

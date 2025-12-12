@@ -8,6 +8,7 @@ from flask import (
 )
 from datetime import timedelta
 from modules.database.db import get_connection  # optional if you want direct DB use
+from modules.visualizer.search_algorithms import run_search
 from modules.game.connect4_engine import (
     create_empty_board,
     is_valid_move,
@@ -64,6 +65,8 @@ def visualizer():
 
 from modules.visualizer.search_algorithms import run_search
 
+from modules.visualizer.search_algorithms import run_search
+
 @app.route("/api/visualizer/run", methods=["POST"])
 def api_visualizer_run():
     data = request.get_json() or {}
@@ -73,14 +76,19 @@ def api_visualizer_run():
     goal = data.get("goal")
     algorithm = data.get("algorithm", "bfs")
     heuristic = data.get("heuristic", "manhattan")
+    params = data.get("params", {}) or {}
 
     if grid is None or start is None or goal is None:
         return jsonify({"ok": False, "error": "Missing grid/start/goal"}), 400
 
-    start = (int(start[0]), int(start[1]))
-    goal = (int(goal[0]), int(goal[1]))
+    try:
+        start = (int(start[0]), int(start[1]))
+        goal = (int(goal[0]), int(goal[1]))
+    except Exception:
+        return jsonify({"ok": False, "error": "Invalid start/goal format"}), 400
 
-    result = run_search(grid, start, goal, algorithm, heuristic)
+    # ✅ result is ALWAYS defined here
+    result = run_search(grid, start, goal, algorithm, heuristic, params)
 
     if not result.ok:
         return jsonify({"ok": False, "error": result.stats.get("error", "Error")}), 400

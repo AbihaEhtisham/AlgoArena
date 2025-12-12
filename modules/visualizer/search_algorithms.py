@@ -9,6 +9,38 @@ from collections import deque
 Coord = Tuple[int, int]
 Grid = List[List[int]]  # 0 empty, 1 wall, 2 start, 3 goal
 
+def normalize_algo(name: str) -> str:
+    # normalize for safety: casing, spaces, dashes
+    n = (name or "").strip().lower()
+    n = n.replace(" ", "").replace("-", "").replace("_", "")
+
+    # common aliases/typos users pick up from UI labels
+    aliases = {
+        "dffs": "dfs",              # common typo
+        "bidirectionalbfs": "bidir",
+        "bidirectionalbfs": "bidir",
+        "bidirectional": "bidir",
+        "uniformcostsearch": "ucs",
+        "uniformcost": "ucs",
+        "weightedastar": "wastar",
+        "wastar": "wastar",
+        "idastar": "idastar",
+        "id a*": "idastar",
+        "id a": "idastar",
+        "simulatedannealing": "anneal",
+        "randomwalk": "rwalk",
+        "stochasticdfs": "sdfs",
+        "randomrestarthillclimb": "rrhill",
+        "randomrestarthillclimbing": "rrhill",
+        "hillclimb": "hill",
+        "hillclimbing": "hill",
+        "beamsearch": "beam",
+        "depthlimitedsearch": "dls",
+        "iterativedeepeningdfs": "iddfs",
+        "iterativedeepeninga*": "idastar",
+    }
+
+    return aliases.get(n, n)
 
 @dataclass
 class SearchResult:
@@ -306,35 +338,67 @@ def bidirectional_bfs(grid: Grid, start: Coord, goal: Coord) -> Tuple[List[Coord
 # Public runner
 # -------------------------
 
-def run_search(grid: Grid, start: Coord, goal: Coord, algorithm: str, heuristic: str) -> SearchResult:
+def run_search(
+    grid: Grid,
+    start: Coord,
+    goal: Coord,
+    algorithm: str,
+    heuristic: str,
+    params: Optional[Dict] = None
+) -> SearchResult:
+    params = params or {}
     t0 = time.perf_counter()
 
     h_fn = get_heuristic_fn(heuristic)
+    algo = normalize_algo(algorithm)
 
-    algo = algorithm.lower().strip()
     visited_order: List[Coord] = []
     parent: Dict[Coord, Optional[Coord]] = {start: None}
 
+    # ---- Dispatch ----
     if algo == "bfs":
         visited_order, parent = bfs(grid, start, goal)
+
     elif algo == "dfs":
         visited_order, parent = dfs(grid, start, goal)
+
+    elif algo == "dls":
+        limit = int(params.get("depth_limit", 25))
+        visited_order, parent = dls(grid, start, goal, limit)
+
+    elif algo == "iddfs":
+        max_depth = int(params.get("depth_limit", 80))
+        visited_order, parent = iddfs(grid, start, goal, max_depth=max_depth)
+
     elif algo in ("ucs", "dijkstra"):
         visited_order, parent = ucs_or_dijkstra(grid, start, goal)
-    elif algo == "iddfs":
-        visited_order, parent = iddfs(grid, start, goal, max_depth=80)
+
     elif algo == "bidir":
         visited_order, parent = bidirectional_bfs(grid, start, goal)
+
     elif algo == "greedy":
         visited_order, parent = greedy_best_first(grid, start, goal, h_fn)
+
     elif algo == "astar":
         visited_order, parent = astar(grid, start, goal, h_fn)
+
+    # If you haven't added these functions yet, DON'T include them here.
+    # Add them only once you implement them:
+    # elif algo == "wastar": ...
+    # elif algo == "idastar": ...
+    # elif algo == "beam": ...
+    # elif algo == "sdfs": ...
+    # elif algo == "rwalk": ...
+    # elif algo == "hill": ...
+    # elif algo == "rrhill": ...
+    # elif algo == "anneal": ...
+
     else:
         return SearchResult(
             ok=False,
             visited_order=[],
             path=[],
-            stats={"error": f"Unknown algorithm '{algorithm}'"},
+            stats={"error": f"Unknown algorithm '{algorithm}' (normalized: '{algo}')"},
         )
 
     path = reconstruct_path(parent, start, goal)
@@ -350,6 +414,7 @@ def run_search(grid: Grid, start: Coord, goal: Coord, algorithm: str, heuristic:
         "path_length": len(path) - 1 if found else 0,
         "found": found,
         "runtime_ms": round(ms, 2),
+        "params": params,
     }
 
     return SearchResult(ok=True, visited_order=visited_order, path=path, stats=stats)
