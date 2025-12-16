@@ -161,7 +161,7 @@
               class="report-link-wrapper"
               style="display: none"
             >
-              <a href="{{ url_for('visualizer_report') }}" class="report-link">
+              <a id="reportLink" href="{{ url_for('visualizer_report') }}" class="report-link">
                 View AI explanation report →
               </a>
             </p>
@@ -169,7 +169,12 @@
         </section>
       </main>
     </div>
-
+    <div class="panel" id="agentPanel">
+      <h3>AI Agent Insights</h3>
+      <div id="agentSummary"></div>
+      <ul id="agentBullets"></ul>
+    </div>
     <script src="{{ url_for('static', filename='js/visualizer/visualizer_core.js') }}"></script>
   </body>
 </html>
+

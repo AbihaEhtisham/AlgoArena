@@ -558,17 +558,51 @@ else if (type === "rooms") {
     }
 
 
-      const visited = data.visited_order || [];
-      const path = data.path || [];
-      const stats = data.stats || {};
+const visited = data.visited_order || [];
+const path = data.path || [];
+const stats = data.stats || {};
 
-      nodesExpandedSpan.textContent = stats.nodes_expanded ?? "-";
-      pathLengthSpan.textContent = stats.path_length ?? "-";
-      foundPathSpan.textContent = stats.found ? "Yes" : "No";
-      reportLinkWrapper.style.display = "block";
+nodesExpandedSpan.textContent = stats.nodes_expanded ?? "-";
+pathLengthSpan.textContent = stats.path_length ?? "-";
+foundPathSpan.textContent = stats.found ? "Yes" : "No";
+reportLinkWrapper.style.display = "block";
+if (data.run_id) {
+  const reportLink = document.getElementById("reportLink");
+  if (reportLink) {
+    reportLink.href = `/visualizer/report?run_id=${data.run_id}`;
+  }
+}
 
-      await animateTraversal(visited, path);
-      runStatus.textContent = "Done. View the AI report for an explanation.";
+
+
+/* ================================
+   AI AGENT VISUALIZATION REPORT
+   ================================ */
+if (data.agent_report) {
+  const agent = data.agent_report;
+
+  const summaryDiv = document.getElementById("agentSummary");
+  const bulletsUl = document.getElementById("agentBullets");
+
+  if (summaryDiv) {
+    summaryDiv.textContent = agent.high_level || "";
+  }
+
+  if (bulletsUl) {
+    bulletsUl.innerHTML = "";
+    (agent.bullets || []).slice(0, 12).forEach((text) => {
+      const li = document.createElement("li");
+      li.textContent = text;
+      bulletsUl.appendChild(li);
+    });
+  }
+}
+
+/* ================================ */
+
+await animateTraversal(visited, path);
+runStatus.textContent = "Done. View the AI report for an explanation.";
+
     } catch (err) {
       console.error(err);
       runStatus.textContent = "Network error.";

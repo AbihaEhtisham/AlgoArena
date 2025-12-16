@@ -8,6 +8,8 @@ from flask import (
 )
 from datetime import timedelta
 from modules.database.db import get_connection  # optional if you want direct DB use
+from modules.database.visualizer_db import init_visualizer_db
+from modules.database.visualizer_db import load_run  # adjust import if path differs
 from modules.visualizer.search_algorithms import run_search
 from modules.game.connect4_engine import (
     create_empty_board,
@@ -34,7 +36,7 @@ app.permanent_session_lifetime = timedelta(hours=2)
 
 # Global learning agent instance (simple in-memory learning across games)
 learning_agent = LearningAgent()
-
+init_visualizer_db()
 
 def init_board():
     """Initialize a new empty board in the session."""
@@ -64,8 +66,8 @@ def visualizer():
     return render_template("visualizer.html")
 
 from modules.visualizer.search_algorithms import run_search
-
-from modules.visualizer.search_algorithms import run_search
+from modules.database.visualizer_db import save_run
+from modules.visualizer.agents.report_agents import generate_multiagent_report
 
 @app.route("/api/visualizer/run", methods=["POST"])
 def api_visualizer_run():
@@ -89,6 +91,35 @@ def api_visualizer_run():
 
     # ✅ result is ALWAYS defined here
     result = run_search(grid, start, goal, algorithm, heuristic, params)
+    run_payload = {
+        "algorithm": result.stats.get("algorithm"),
+        "heuristic": heuristic,
+        "params": params,
+        "grid_rows": len(grid),
+        "grid_cols": len(grid[0]) if grid else 0,
+        "wall_count": sum(1 for r in grid for v in r if v == 1),
+        "start": list(start),
+        "goal": list(goal),
+        "visited_order": result.visited_order,
+        "path": result.path,
+        "stats": result.stats,
+    }
+
+# optionally: compare to last run later (we'll add it soon)
+    agent_report = generate_multiagent_report(run_payload, previous_run=None)
+    run_payload["agent_report"] = agent_report
+
+    run_id = save_run(run_payload)
+
+    return jsonify({
+        "ok": True,
+        "visited_order": result.visited_order,
+        "path": result.path,
+        "stats": result.stats,
+        "run_id": run_id,
+        "agent_report": agent_report
+    })
+
 
     if not result.ok:
         return jsonify({"ok": False, "error": result.stats.get("error", "Error")}), 400
@@ -101,26 +132,18 @@ def api_visualizer_run():
     })
 
 
-
 @app.route("/visualizer/report")
 def visualizer_report():
-    report = session.get("visualizer_report")
-    if report is None:
-        # No run yet
-        report = {
-            "algorithm": "N/A",
-            "found": False,
-            "nodes_expanded": 0,
-            "path_length": 0,
-            "heuristic": None,
-            "efficiency_ratio": None,
-            "summary_lines": [
-                "No visualization has been run yet. Go back and run an algorithm first."
-            ],
-        }
-    return render_template("visualizer_report.html", report=report)
+    run_id = request.args.get("run_id", type=int)
 
+    if not run_id:
+        return render_template("visualizer_report.html", report=None)
 
+    run = load_run(run_id)
+    if not run:
+        return render_template("visualizer_report.html", report=None)
+
+    return render_template("visualizer_report.html", report=run.get("agent_report"))
 
 @app.route("/game/connect4")
 def connect4():
