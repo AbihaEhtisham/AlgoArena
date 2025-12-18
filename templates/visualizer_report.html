@@ -2,88 +2,181 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Visualizer - AI Report</title>
+    <title>AlgoArena — Visualizer Report</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/visualizer_report.css') }}" />
   </head>
-  <body>
+
+  <body class="vr-body">
     <!-- AI Loading Overlay -->
-    <div id="aiLoadingOverlay">
-      <div class="loading-box">
-        <img src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}" alt="AI Agent" />
-        <h3 class="loading-title">AI Agent is analyzing your run…</h3>
-        <p class="loading-sub">Extracting metrics • Comparing strategies • Writing insights</p>
+    <div id="aiLoadingOverlay" class="vr-loading">
+      <div class="vr-loading-card">
+        <div class="vr-loading-left">
+          <img
+            class="vr-loading-robo"
+            src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}"
+            alt="AI Agent"
+          />
+        </div>
+        <div class="vr-loading-right">
+          <div class="vr-loading-title">AI Agent is analyzing your run…</div>
+          <div class="vr-loading-sub">Extracting metrics • Comparing strategies • Writing insights</div>
+          <div class="vr-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        </div>
       </div>
     </div>
 
-    <div class="report-wrap">
-      <div class="report-header">
-        <div class="header-left">
-          <img class="robo" src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}" alt="AI Agent" />
-          <div class="header-title">
-            <h1>Visualizer AI Agent Report</h1>
-            <p>Multi-agent analysis of your algorithm run (metrics + explanations + learning outcomes).</p>
+    <div class="vr-wrap">
+      <!-- Header -->
+      <header class="vr-header vr-anim-in">
+        <div class="vr-header-left">
+          <div class="vr-brand">
+            <div class="vr-brand-badge">
+              <img
+                class="vr-brand-robo"
+                src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}"
+                alt="AI Agent"
+              />
+            </div>
+            <div class="vr-brand-text">
+              <h1>Visualizer AI Agent Report</h1>
+              <p>Multi-agent analysis of your algorithm run (metrics + explanations + learning outcomes).</p>
+            </div>
           </div>
         </div>
-        <div>
-          <a class="btn btn-gray" href="{{ url_for('visualizer') }}">⬅ Back</a>
-          <a class="btn btn-yellow" href="{{ url_for('index') }}">Main Menu</a>
+
+        <div class="vr-header-actions">
+          <a class="vr-btn vr-btn-ghost" href="{{ url_for('visualizer') }}">⬅ Back</a>
+          <a class="vr-btn vr-btn-primary" href="{{ url_for('index') }}">Main Menu</a>
         </div>
-      </div>
+      </header>
 
       {% if not report %}
-        <div class="card" style="margin-top:16px;">
-          <h2>No run found</h2>
-          <p>Run a visualization first, then open the report from the “View AI explanation report →” link.</p>
-        </div>
+        <section class="vr-card vr-anim-in" style="animation-delay: 80ms;">
+          <h2 class="vr-card-title">No run found</h2>
+          <p class="vr-muted">
+            Run a visualization first, then open the report from the “View AI explanation report →” link.
+          </p>
+        </section>
       {% else %}
-        <div class="card" style="margin-top:16px;">
-          <h2>{{ report.title }}</h2>
-          <p style="opacity:0.9; margin: 8px 0 0;">{{ report.high_level }}</p>
-        </div>
+        <!-- Summary / Title -->
+        <section class="vr-card vr-hero vr-anim-in" style="animation-delay: 70ms;">
+          <div class="vr-hero-top">
+            <div>
+              <h2 class="vr-hero-title">{{ report.title }}</h2>
+              <p class="vr-hero-sub">{{ report.high_level }}</p>
+            </div>
 
-        <div class="grid-2">
-          <div class="card">
-            <h2>Run Overview</h2>
-            <div class="kv">
-              <div class="k">Algorithm</div><div class="v">{{ report.algorithm }}</div>
-              <div class="k">Heuristic</div><div class="v">{{ report.heuristic }}</div>
-
-              <div class="k">Found Path</div>
-              <div class="v">
-                {% if report.metrics and report.metrics.path_length and report.metrics.path_length > 0 %}
-                  <span class="badge badge-ok">YES</span>
-                {% else %}
-                  <span class="badge badge-bad">NO</span>
-                {% endif %}
-              </div>
-
-              <div class="k">Nodes Expanded</div><div class="v">{{ report.metrics.nodes_expanded }}</div>
-              <div class="k">Path Length</div><div class="v">{{ report.metrics.path_length }}</div>
-              <div class="k">Visited / Step</div><div class="v">{{ report.metrics.efficiency_visited_per_step }}</div>
-              <div class="k">Detour Ratio</div><div class="v">{{ report.metrics.detour_ratio_vs_manhattan }}</div>
-              <div class="k">Revisit Rate (%)</div><div class="v">{{ report.metrics["revisit_rate_%"] }}</div>
+            <div class="vr-badge-wrap">
+              {% if report.metrics and report.metrics.path_length and report.metrics.path_length > 0 %}
+                <span class="vr-badge vr-badge-ok">PATH FOUND</span>
+              {% else %}
+                <span class="vr-badge vr-badge-bad">NO PATH</span>
+              {% endif %}
             </div>
           </div>
 
-          <div class="card">
-            <h2>What you learned</h2>
-            <ul>
+          <div class="vr-pill-row">
+            <span class="vr-pill"><b>Algorithm:</b> {{ report.algorithm }}</span>
+            <span class="vr-pill"><b>Heuristic:</b> {{ report.heuristic }}</span>
+          </div>
+        </section>
+
+        <!-- Grid 2 columns -->
+        <section class="vr-grid-2">
+          <!-- Run Overview (table look) -->
+          <div class="vr-card vr-anim-in" style="animation-delay: 120ms;">
+            <div class="vr-card-head">
+              <h2 class="vr-card-title">Run Overview</h2>
+              <span class="vr-chip">Metrics Dashboard</span>
+            </div>
+
+            <div class="vr-table">
+              <div class="vr-row">
+                <div class="vr-k">Algorithm</div>
+                <div class="vr-v">{{ report.algorithm }}</div>
+              </div>
+              <div class="vr-row">
+                <div class="vr-k">Heuristic</div>
+                <div class="vr-v">{{ report.heuristic }}</div>
+              </div>
+
+              <div class="vr-row">
+                <div class="vr-k">Found Path</div>
+                <div class="vr-v">
+                  {% if report.metrics and report.metrics.path_length and report.metrics.path_length > 0 %}
+                    <span class="vr-badge vr-badge-ok">YES</span>
+                  {% else %}
+                    <span class="vr-badge vr-badge-bad">NO</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="vr-row">
+                <div class="vr-k">Nodes Expanded</div>
+                <div class="vr-v">{{ report.metrics.nodes_expanded }}</div>
+              </div>
+              <div class="vr-row">
+                <div class="vr-k">Path Length</div>
+                <div class="vr-v">{{ report.metrics.path_length }}</div>
+              </div>
+              <div class="vr-row">
+                <div class="vr-k">Efficiency</div>
+                <div class="vr-v">
+                  {{ report.metrics.efficiency_visited_per_step }}
+                  <span class="vr-unit">visited/step</span>
+                </div>
+              </div>
+              <div class="vr-row">
+                <div class="vr-k">Detour Ratio</div>
+                <div class="vr-v">
+                  {{ report.metrics.detour_ratio_vs_manhattan }}
+                  <span class="vr-unit">vs Manhattan</span>
+                </div>
+              </div>
+              <div class="vr-row">
+                <div class="vr-k">Revisit Rate</div>
+                <div class="vr-v">
+                  {{ report.metrics["revisit_rate_%"] }}
+                  <span class="vr-unit">%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- What you learned -->
+          <div class="vr-card vr-anim-in" style="animation-delay: 160ms;">
+            <div class="vr-card-head">
+              <h2 class="vr-card-title">What you learned</h2>
+              <span class="vr-chip">Learning Outcomes</span>
+            </div>
+
+            <ul class="vr-list">
               {% for s in report.learning_outcomes %}
                 <li>{{ s }}</li>
               {% endfor %}
             </ul>
           </div>
-        </div>
+        </section>
 
-        <div class="card" style="margin-top:16px;">
-          <h2>Multi-Agent Insights</h2>
-          <div class="agent-list">
+        <!-- Multi-Agent Insights -->
+        <section class="vr-card vr-anim-in" style="animation-delay: 200ms;">
+          <div class="vr-card-head">
+            <h2 class="vr-card-title">Multi-Agent Insights</h2>
+            <span class="vr-chip">Agents</span>
+          </div>
+
+          <div class="vr-agent-grid">
             {% for sec in report.agent_sections %}
-              <div class="card agent-card">
-                <h3>{{ sec.agent_title }}</h3>
-                <p>{{ sec.summary }}</p>
-                <ul>
+              <div class="vr-agent-card">
+                <div class="vr-agent-head">
+                  <div class="vr-agent-name">{{ sec.agent_title }}</div>
+                  <div class="vr-agent-mini">Agent Output</div>
+                </div>
+
+                <p class="vr-agent-summary">{{ sec.summary }}</p>
+
+                <ul class="vr-list">
                   {% for i in sec.insights %}
                     <li>{{ i }}</li>
                   {% endfor %}
@@ -91,20 +184,25 @@
               </div>
             {% endfor %}
           </div>
-        </div>
+        </section>
 
-        <div class="card" style="margin-top:16px;">
-          <h2>Study Notes (for viva / report writing)</h2>
-          <ul>
+        <!-- Study Notes -->
+        <section class="vr-card vr-anim-in" style="animation-delay: 240ms;">
+          <div class="vr-card-head">
+            <h2 class="vr-card-title">Study Notes (for viva / report writing)</h2>
+            <span class="vr-chip">Notes</span>
+          </div>
+          <div class="vr-notes-grid">
             {% for note in report.study_notes %}
-              <li>{{ note }}</li>
+              <div class="vr-note"> {{ note }}</div>
             {% endfor %}
-          </ul>
-        </div>
+          </div>
+        </section>
 
-        <div class="footer-actions">
-          <a class="btn btn-yellow" href="{{ url_for('visualizer') }}">Run another visualization</a>
-          <a class="btn btn-gray" href="{{ url_for('index') }}">Back to Main Menu</a>
+        <!-- Footer actions -->
+        <div class="vr-footer-actions vr-anim-in" style="animation-delay: 280ms;">
+          <a class="vr-btn vr-btn-primary" href="{{ url_for('visualizer') }}">Run another visualization</a>
+          <a class="vr-btn vr-btn-ghost" href="{{ url_for('index') }}">Back to Main Menu</a>
         </div>
       {% endif %}
     </div>

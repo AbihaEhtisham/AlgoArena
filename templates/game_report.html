@@ -3,125 +3,199 @@
   <head>
     <meta charset="utf-8" />
     <title>Connect4 - AI Progress Report</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/global.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/report.css') }}"
-    />
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/report.css') }}" />
   </head>
-  <body class="report-body">
-    <div class="report-page">
-      <header class="report-header">
-        <div>
-          <h1>AI Progress Report</h1>
-          <p>
-            Multi-agent analysis of the Connect4 learning AI
-          </p>
+
+  <body class="gr-body">
+    <div class="gr-wrap gr-anim-in">
+      <!-- Header -->
+      <header class="gr-header">
+        <div class="gr-brand">
+          <div class="gr-badge">
+            <img
+              class="gr-robo"
+              src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}"
+              alt="AI"
+            />
+          </div>
+
+          <div class="gr-title">
+            <h1>AI Progress Report</h1>
+            <p>Multi-agent analysis of the Connect4 learning AI</p>
+          </div>
         </div>
-        <div class="report-actions">
-          <a href="{{ url_for('connect4') }}">Play Again</a>
-          <a href="{{ url_for('index') }}">Main Menu</a>
+
+        <div class="gr-actions">
+          <a class="gr-btn gr-btn-ghost" href="{{ url_for('connect4') }}">Play Again</a>
+          <a class="gr-btn gr-btn-primary" href="{{ url_for('index') }}">Main Menu</a>
         </div>
       </header>
 
-      <p>
-        <strong>Last Game Result:</strong>
-        {% if report.last_result %}
-          {{ report.last_result | capitalize }}
-        {% else %}
-          No games played yet.
-        {% endif %}
-      </p>
+      <!-- Hero summary -->
+      <section class="gr-hero">
+        <div>
+          <div class="gr-hero-k">Session summary</div>
+
+          <div class="gr-pill-row">
+            <div class="gr-pill"><b>Games:</b> {{ report.games_played }}</div>
+            <div class="gr-pill"><b>Win rate:</b> {{ report.ai_win_rate }}%</div>
+
+            {% if report.last_result %}
+              {% set lr = report.last_result | lower %}
+              {% if lr == "ai" or lr == "ai won" or lr == "ai_win" or lr == "win" %}
+                <div class="gr-pill"><span class="gr-badge gr-badge-ok">Last Result: AI WON</span></div>
+              {% elif lr == "player" or lr == "player won" or lr == "player_win" or lr == "loss" %}
+                <div class="gr-pill"><span class="gr-badge gr-badge-bad">Last Result: PLAYER WON</span></div>
+              {% else %}
+                <div class="gr-pill"><span class="gr-badge gr-badge-warn">Last Result: DRAW</span></div>
+              {% endif %}
+            {% else %}
+              <div class="gr-pill"><span class="gr-badge gr-badge-warn">No games yet</span></div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="gr-hero-right">
+          <div class="gr-mini-card">
+            <div class="gr-mini-k">AI Wins</div>
+            <div class="gr-mini-v">{{ report.ai_wins }}</div>
+          </div>
+          <div class="gr-mini-card">
+            <div class="gr-mini-k">Player Wins</div>
+            <div class="gr-mini-v">{{ report.player_wins }}</div>
+          </div>
+          <div class="gr-mini-card">
+            <div class="gr-mini-k">Draws</div>
+            <div class="gr-mini-v">{{ report.draws }}</div>
+          </div>
+        </div>
+      </section>
 
       {% set lg = report.last_game %}
       {% set hist = report.history %}
 
-      <div class="card-grid">
-        <section class="card">
-          <h2>Overall Performance</h2>
-          <ul>
-            <li>Total games played: {{ report.games_played }}</li>
-            <li>AI wins: {{ report.ai_wins }}</li>
-            <li>Player wins: {{ report.player_wins }}</li>
-            <li>Draws: {{ report.draws }}</li>
-            <li>AI win rate: {{ report.ai_win_rate }}%</li>
-            <li>
-              Current minimax search depth:
-              {{ report.current_depth }}
-            </li>
-          </ul>
-        </section>
+      <!-- Main grid -->
+      <section class="gr-grid">
+        <!-- Overall -->
+        <div class="gr-card">
+          <div class="gr-card-head">
+            <h2>Overall Performance</h2>
+            <div class="gr-chip">Minimax</div>
+          </div>
 
-        <section class="card">
-          <h2>Last Game Breakdown</h2>
-          <ul>
-            <li>AI result: {{ lg.result | capitalize }}</li>
-            <li>AI moves played: {{ lg.moves }}</li>
-            <li>Estimated mistakes: {{ lg.mistakes }}</li>
-            <li>Estimated blunders: {{ lg.blunders }}</li>
-            <li>
-              Efficiency (0–100%):
-              {{ (lg.efficiency * 100) | round(2) if lg.efficiency is not none else "N/A" }}
-            </li>
-            <li>
-              Average search depth:
-              {{ lg.avg_depth | round(2) }}
-            </li>
-          </ul>
-        </section>
+          <div class="gr-table">
+            <div class="gr-row"><div class="gr-k">Total games</div><div class="gr-v">{{ report.games_played }}</div></div>
+            <div class="gr-row"><div class="gr-k">AI wins</div><div class="gr-v">{{ report.ai_wins }}</div></div>
+            <div class="gr-row"><div class="gr-k">Player wins</div><div class="gr-v">{{ report.player_wins }}</div></div>
+            <div class="gr-row"><div class="gr-k">Draws</div><div class="gr-v">{{ report.draws }}</div></div>
+            <div class="gr-row"><div class="gr-k">AI win rate</div><div class="gr-v">{{ report.ai_win_rate }}%</div></div>
+            <div class="gr-row"><div class="gr-k">Current minimax depth</div><div class="gr-v">{{ report.current_depth }}</div></div>
+          </div>
 
-        <section class="card">
-          <h2>Historical Averages</h2>
-          <ul>
-            <li>Games in history: {{ hist.total_games }}</li>
-            <li>Avg mistakes per game: {{ hist.avg_mistakes | round(2) }}</li>
-            <li>Avg blunders per game: {{ hist.avg_blunders | round(2) }}</li>
-            <li>
-              Avg efficiency:
-              {{ (hist.avg_efficiency * 100) | round(2) }}%
-            </li>
-            <li>
-              Avg search depth:
-              {{ hist.avg_depth | round(2) }}
-            </li>
-          </ul>
-        </section>
+          <div class="gr-callout">
+            Depth increases as the agent becomes more confident (based on history + detected patterns).
+          </div>
+        </div>
 
-        <section class="card">
-          <h2>Learned Player Behaviour</h2>
-          <p style="margin-bottom: 6px;">
-            Moves by column (0–6) across all games:
-          </p>
-          {% if report.player_column_counts %}
-          <ul>
-            {% for count in report.player_column_counts %}
-            <li>Column {{ loop.index0 }}: {{ count }} moves</li>
-            {% endfor %}
-          </ul>
+        <!-- Last game -->
+        <div class="gr-card">
+          <div class="gr-card-head">
+            <h2>Last Game Breakdown</h2>
+            <div class="gr-chip">Recent</div>
+          </div>
+
+          <div class="gr-table">
+            <div class="gr-row"><div class="gr-k">Result</div><div class="gr-v">{{ lg.result | capitalize }}</div></div>
+            <div class="gr-row"><div class="gr-k">AI moves played</div><div class="gr-v">{{ lg.moves }}</div></div>
+            <div class="gr-row"><div class="gr-k">Estimated mistakes</div><div class="gr-v">{{ lg.mistakes }}</div></div>
+            <div class="gr-row"><div class="gr-k">Estimated blunders</div><div class="gr-v">{{ lg.blunders }}</div></div>
+
+            <div class="gr-row">
+              <div class="gr-k">Efficiency</div>
+              <div class="gr-v">
+                {% if lg.efficiency is not none %}
+                  {{ (lg.efficiency * 100) | round(1) }}%
+                {% else %}
+                  N/A
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="gr-row"><div class="gr-k">Avg search depth</div><div class="gr-v">{{ lg.avg_depth | round(2) }}</div></div>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="gr-card">
+          <div class="gr-card-head">
+            <h2>Historical Averages</h2>
+            <div class="gr-chip">Trends</div>
+          </div>
+
+          <div class="gr-table">
+            <div class="gr-row"><div class="gr-k">Games in history</div><div class="gr-v">{{ hist.total_games }}</div></div>
+            <div class="gr-row"><div class="gr-k">Avg mistakes / game</div><div class="gr-v">{{ hist.avg_mistakes | round(2) }}</div></div>
+            <div class="gr-row"><div class="gr-k">Avg blunders / game</div><div class="gr-v">{{ hist.avg_blunders | round(2) }}</div></div>
+            <div class="gr-row"><div class="gr-k">Avg efficiency</div><div class="gr-v">{{ (hist.avg_efficiency * 100) | round(1) }}%</div></div>
+            <div class="gr-row"><div class="gr-k">Avg search depth</div><div class="gr-v">{{ hist.avg_depth | round(2) }}</div></div>
+          </div>
+        </div>
+
+        <!-- Player behavior bars -->
+        <div class="gr-card">
+          <div class="gr-card-head">
+            <h2>Learned Player Behaviour</h2>
+            <div class="gr-chip">Columns</div>
+          </div>
+
+          {% if report.player_column_bars %}
+            <div class="gr-bars">
+              {% for item in report.player_column_bars %}
+                <div class="gr-bar-row">
+                  <div class="gr-bar-label">Col {{ item.col }}</div>
+
+                  <div class="gr-bar-track">
+                    <div class="gr-bar-fill" style="--w: {{ item.width_css }};"></div>
+                  </div>
+
+                  <div class="gr-bar-value">{{ item.count }}</div>
+                </div>
+              {% endfor %}
+            </div>
           {% else %}
-          <p>No moves recorded yet.</p>
+            <p class="gr-muted">No moves recorded yet.</p>
           {% endif %}
-        </section>
-      </div>
+        </div>
+      </section>
 
-      <section class="explainer">
-        <p>
-          <strong>Mistakes</strong> are moves after which the evaluated
-          position becomes worse for the AI. Large evaluation drops are
-          counted as <strong>blunders</strong>. The
-          <strong>efficiency</strong> metric penalizes games with many
-          mistakes and blunders and stays closer to 1.0 (100%) when the AI
-          plays consistently strong moves.
-        </p>
-        <p>
-          Architecturally, you can describe this as a
-          <strong>multi-agent AI system</strong>: one agent plays the game
-          (minimax), one agent models the opponent's behaviour, and another
-          agent evaluates and explains the AI's own decisions over time.
-        </p>
+      <!-- Footer explainer -->
+      <section class="gr-footer-card" style="margin-top:14px;">
+        <h2>Learnings from the game </h2>
+        <div class="gr-note-grid">
+  <div class="gr-note">
+    Mistakes are moves after which the evaluation worsens for the AI.
+    Larger drops are counted as blunders.
+  </div>
+  <div class="gr-note">
+    Efficiency stays closer to 100% when the AI plays consistently strong moves
+    with fewer mistakes/blunders.
+  </div>
+  <div class="gr-note">
+    This can be presented as a multi-agent AI system: one agent plays (minimax),
+    one analyzes patterns, and one reports performance.
+  </div>
+  <div class="gr-note">
+    Increasing search depth is a form of adaptive difficulty: deeper search → stronger play
+    but slower computation.
+  </div>
+</div>
+
+        <div class="gr-bottom-actions">
+          <a class="gr-btn gr-btn-primary" href="{{ url_for('connect4') }}">Play Again</a>
+          <a class="gr-btn gr-btn-ghost" href="{{ url_for('index') }}">Back to Main Menu</a>
+        </div>
       </section>
     </div>
   </body>

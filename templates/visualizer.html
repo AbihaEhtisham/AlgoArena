@@ -3,178 +3,148 @@
   <head>
     <meta charset="utf-8" />
     <title>AlgoArena - Algorithm Visualizer</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/global.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/visualizer.css') }}"
-    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/visualizer.css') }}" />
   </head>
+
   <body class="visualizer-body">
     <div class="visualizer-page">
       <header class="visualizer-header">
         <div class="vh-left">
           <h1>Algorithm Visualizer</h1>
-          <p>
-            Watch search algorithms explore a grid, then let an AI agent explain
-            what happened.
-          </p>
+          <p>Watch search algorithms explore a grid, then let an AI agent explain what happened.</p>
         </div>
         <div class="vh-right">
           <a href="{{ url_for('index') }}" class="btn-secondary">Back to Menu</a>
         </div>
       </header>
 
-      <main class="visualizer-main">
-        <section class="controls-panel">
-          <div class="controls-row">
-            <div class="control-group">
-              <label class="control-label" for="algorithmSelect">Algorithm</label>
-              <select id="algorithmSelect" class="select-input">
-                    <option value="bfs">Breadth-First Search (BFS)</option>
-                    <option value="dfs">Depth-First Search (DFS)</option>
-                    <option value="dls">Depth-Limited Search (DLS)</option> 
-                    <option value="iddfs">Iterative Deepening DFS (IDDFS)</option>
-                    <option value="ucs">Uniform Cost Search (UCS)</option>
-                    <option value="dijkstra">Dijkstra</option>
-                    <option value="bidir">Bidirectional BFS</option>
-                    <option value="greedy">Greedy Best-First Search</option>
-                    <option value="astar">A* Search</option>
-                    <option value="wastar">Weighted A*</option>
-                    <option value="idastar">IDA*</option>
-                    <option value="beam">Beam Search</option>
-                    <option value="sdfs">Stochastic DFS</option>
-                    <option value="rwalk">Random Walk</option>
-                    <option value="hill">Hill Climbing (Steepest)</option>
-                    <option value="rrhill">Hill Climb (Random Restart)</option>
-                    <option value="anneal">Simulated Annealing</option>            
-              </select>
-            </div>
+      <!-- ✅ TOP CONTROLS BAR -->
+      <section class="controls-panel controls-top">
+        <div class="controls-row top-row">
+          <div class="control-group">
+            <label class="control-label" for="algorithmSelect">Algorithm</label>
+            <select id="algorithmSelect" class="select-input">
+              <option value="bfs">Breadth-First Search (BFS)</option>
+              <option value="dfs">Depth-First Search (DFS)</option>
+              <option value="dls">Depth-Limited Search (DLS)</option>
+              <option value="iddfs">Iterative Deepening DFS (IDDFS)</option>
+              <option value="ucs">Uniform Cost Search (UCS)</option>
+              <option value="dijkstra">Dijkstra</option>
+              <option value="bidir">Bidirectional BFS</option>
+              <option value="greedy">Greedy Best-First Search</option>
+              <option value="astar">A* Search</option>
+              <option value="wastar">Weighted A*</option>
+              <option value="idastar">IDA*</option>
+              <option value="beam">Beam Search</option>
+              <option value="sdfs">Stochastic DFS</option>
+              <option value="rwalk">Random Walk</option>
+              <option value="hill">Hill Climbing (Steepest)</option>
+              <option value="rrhill">Hill Climb (Random Restart)</option>
+              <option value="anneal">Simulated Annealing</option>
+            </select>
+          </div>
 
-            <div class="control-group">
-              <label class="control-label" for="heuristicSelect">
-                Heuristic
-                <span class="hint-text">(for A* only)</span>
-              </label>
-              <select id="heuristicSelect" class="select-input">
-                <option value="manhattan">Manhattan (L1)</option>
-                <option value="euclidean">Euclidean (L2)</option>
-                <option value="chebyshev">Chebyshev / Diagonal</option>
-                <option value="octile">Octile Distance</option>
-                <option value="tiebreaker">Tie-breaker (A*)</option>
-                <option value="linear_conflict">Manhattan + Wall Penalty</option>
-                <option value="relaxed">Relaxed (Diagonal Allowed)</option>
-                <option value="overestimate">Overestimating (Inadmissible)</option>
-              </select>
-            </div>
+          <div class="control-group">
+            <label class="control-label" for="heuristicSelect">
+              Heuristic <span class="hint-text">(for A* only)</span>
+            </label>
+            <select id="heuristicSelect" class="select-input">
+              <option value="manhattan">Manhattan (L1)</option>
+              <option value="euclidean">Euclidean (L2)</option>
+              <option value="chebyshev">Chebyshev / Diagonal</option>
+              <option value="octile">Octile Distance</option>
+              <option value="tiebreaker">Tie-breaker (A*)</option>
+              <option value="linear_conflict">Manhattan + Wall Penalty</option>
+              <option value="relaxed">Relaxed (Diagonal Allowed)</option>
+              <option value="overestimate">Overestimating (Inadmissible)</option>
+            </select>
+          </div>
 
-            <div class="control-group">
-              <span class="control-label">Tools</span>
-              <div class="tool-buttons">
-                <button class="tool-btn selected" data-tool="wall">Wall</button>
-                <button class="tool-btn" data-tool="start">Start</button>
-                <button class="tool-btn" data-tool="goal">Goal</button>
-                <button class="tool-btn" data-tool="erase">Erase</button>
+          <div class="control-group">
+            <span class="control-label">Tools</span>
+            <div class="tool-buttons">
+              <button class="tool-btn selected" data-tool="wall">Wall</button>
+              <button class="tool-btn" data-tool="start">Start</button>
+              <button class="tool-btn" data-tool="goal">Goal</button>
+              <button class="tool-btn" data-tool="erase">Erase</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <span class="control-label">Mazes</span>
+            <div class="dropdown">
+              <button id="mazeDropdownBtn" class="btn-primary dropdown-toggle" type="button">
+                Mazes &amp; Patterns ▾
+              </button>
+              <div id="mazeDropdownMenu" class="dropdown-menu">
+                <button class="dropdown-item" data-maze="random">Basic Random Maze</button>
+                <button class="dropdown-item" data-maze="box">Box Maze</button>
+                <button class="dropdown-item" data-maze="stair">Simple Stair Pattern</button>
+                <button class="dropdown-item" data-maze="wave">Wave Walls</button>
+                <button class="dropdown-item" data-maze="spiral">Spiral</button>
+                <button class="dropdown-item" data-maze="division">Recursive Division</button>
+                <button class="dropdown-item" data-maze="binary">Binary Tree</button>
+                <button class="dropdown-item" data-maze="sidewinder">Sidewinder</button>
+                <button class="dropdown-item" data-maze="rooms">Rooms + Corridors</button>
+                <button class="dropdown-item" data-maze="clear">Clear All Walls</button>
               </div>
             </div>
           </div>
 
-          <div class="controls-row">
-            <div class="control-group">
-              <span class="control-label">Mazes &amp; Patterns</span>
+          <div class="control-group action-group">
+            <span class="control-label">Run</span>
+            <div class="run-buttons">
+              <button id="runBtn" class="btn-primary">Run</button>
+              <button id="clearBtn" class="btn-secondary">Clear</button>
+            </div>
+          </div>
+        </div>
 
-              <div class="dropdown">
-                <button
-                  id="mazeDropdownBtn"
-                  class="btn-primary dropdown-toggle"
-                  type="button"
-                >
-                  Mazes &amp; Patterns ▾
-                </button>
-                <div id="mazeDropdownMenu" class="dropdown-menu">
-                  <button class="dropdown-item" data-maze="random">
-                    Basic Random Maze
-                  </button>
-                  <button class="dropdown-item" data-maze="box">
-                    Box Maze
-                  </button>
-                  <button class="dropdown-item" data-maze="stair">
-                    Simple Stair Pattern
-                  </button>
-                  <button class="dropdown-item" data-maze="wave">Wave Walls</button>
-                  <button class="dropdown-item" data-maze="spiral">Spiral</button>
-                  <button class="dropdown-item" data-maze="division">Recursive Division</button>
-                  <button class="dropdown-item" data-maze="binary">Binary Tree</button>
-                  <button class="dropdown-item" data-maze="sidewinder">Sidewinder</button>
-                  <button class="dropdown-item" data-maze="rooms">Rooms + Corridors</button>
-                  <button class="dropdown-item" data-maze="clear">
-                    Clear All Walls
-                  </button>
+        <div class="status-row">
+          <span id="runStatus">Click cells to edit the grid, choose an algorithm, then press "Run".</span>
+        </div>
+      </section>
+
+      <!-- ✅ CENTERED MAIN CONTENT -->
+      <main class="visualizer-main visualizer-center">
+        <section class="board-panel board-center">
+          <div id="grid" data-rows="15" data-cols="25"></div>
+
+          <div class="below-grid">
+            <div class="results-panel">
+              <h2>Run Summary</h2>
+              <div class="results-grid">
+                <div class="result-item">
+                  <span class="label">Nodes expanded</span>
+                  <span class="value" id="nodesExpanded">-</span>
+                </div>
+                <div class="result-item">
+                  <span class="label">Path length</span>
+                  <span class="value" id="pathLength">-</span>
+                </div>
+                <div class="result-item">
+                  <span class="label">Found path</span>
+                  <span class="value" id="foundPath">-</span>
                 </div>
               </div>
+              <p id="reportLinkWrapper" class="report-link-wrapper" style="display:none">
+                <a id="reportLink" href="{{ url_for('visualizer_report') }}" class="report-link">
+                  View AI explanation report →
+                </a>
+              </p>
             </div>
 
-            <div class="control-group action-group">
-              <span class="control-label">Run</span>
-              <div class="run-buttons">
-                <button id="runBtn" class="btn-primary">Run Algorithm</button>
-                <button id="clearBtn" class="btn-secondary">Clear Grid</button>
-              </div>
+            <div class="panel agent-panel" id="agentPanel">
+              <h3>AI Agent Insights</h3>
+              <div id="agentSummary"></div>
+              <ul id="agentBullets"></ul>
             </div>
-          </div>
-
-          <div class="status-row">
-            <span id="runStatus">
-              Click cells to edit the grid, choose an algorithm, then press
-              "Run".
-            </span>
-          </div>
-        </section>
-
-        <section class="board-panel">
-          <div
-            id="grid"
-            data-rows="15"
-            data-cols="25"
-          ></div>
-
-          <div class="results-panel">
-            <h2>Run Summary</h2>
-            <div class="results-grid">
-              <div class="result-item">
-                <span class="label">Nodes expanded</span>
-                <span class="value" id="nodesExpanded">-</span>
-              </div>
-              <div class="result-item">
-                <span class="label">Path length</span>
-                <span class="value" id="pathLength">-</span>
-              </div>
-              <div class="result-item">
-                <span class="label">Found path</span>
-                <span class="value" id="foundPath">-</span>
-              </div>
-            </div>
-            <p
-              id="reportLinkWrapper"
-              class="report-link-wrapper"
-              style="display: none"
-            >
-              <a id="reportLink" href="{{ url_for('visualizer_report') }}" class="report-link">
-                View AI explanation report →
-              </a>
-            </p>
           </div>
         </section>
       </main>
     </div>
-    <div class="panel" id="agentPanel">
-      <h3>AI Agent Insights</h3>
-      <div id="agentSummary"></div>
-      <ul id="agentBullets"></ul>
-    </div>
+
     <script src="{{ url_for('static', filename='js/visualizer/visualizer_core.js') }}"></script>
   </body>
 </html>
-

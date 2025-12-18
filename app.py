@@ -246,16 +246,34 @@ def evaluate_board_for_ai(board, depth: int = 3):
     _, score = minimax(board, depth, -inf, inf, True)
     return score
 
-
 @app.route("/game/connect4/report")
 def connect4_report():
-    """Show a simple report of how the AI has been doing."""
+    
     report = learning_agent.get_report()
+
+    counts_raw = report.get("player_column_counts") or []
+    counts = []
+    for x in counts_raw:
+        try:
+            counts.append(int(x))
+        except Exception:
+            counts.append(0)
+
+    max_count = max(counts) if counts else 0
+
+    bars = []
+    for i, c in enumerate(counts):
+        pct = (c / max_count * 100.0) if max_count > 0 else 0.0
+        bars.append({
+            "col": i,
+            "count": c,
+            "pct": pct,
+            "width_css": f"{pct:.1f}%"   # ✅ plain string for CSS
+        })
+
+    report["player_column_bars"] = bars
     return render_template("game_report.html", report=report)
 
-@app.route("/learn")
-def learn_with_ai():
-    return "<h1>AI Tutor Placeholder – Coming Soon</h1>"
 
 
 if __name__ == "__main__":
