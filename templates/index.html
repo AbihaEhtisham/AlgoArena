@@ -27,7 +27,8 @@
         <section class="hero">
           <h2>Choose how you want to think with AI</h2>
           <p>
-            Visualize search algorithms, or play against a learning Connect4 AI.
+            Visualize search algorithms, play against a learning Connect4 AI,
+            or learn concepts with the AI tutor.
           </p>
         </section>
 
@@ -60,6 +61,22 @@
               <span class="mode-tag">Adversarial · Multi-Agent</span>
               <div class="mode-btn-wrap">
                 <span class="mode-btn">Play Connect4</span>
+              </div>
+            </div>
+          </a>
+
+          <!-- Tutor card (re-added) -->
+          <a href="{{ url_for('learn_with_ai') }}" class="mode-card" aria-label="Open AI Tutor">
+            <div class="mode-outline"></div>
+            <div class="mode-content">
+              <h3>Learn with AI Tutor</h3>
+              <p>
+                Ask questions about BFS/DFS/UCS, A*, heuristics, and how your
+                AlgoArena project works — powered by your local knowledge base.
+              </p>
+              <span class="mode-tag">Tutor · Local RAG</span>
+              <div class="mode-btn-wrap">
+                <span class="mode-btn">Open Tutor</span>
               </div>
             </div>
           </a>

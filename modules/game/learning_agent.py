@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 
+from modules.game.mcts_agent import MCTSAgent
 from .minimax_agent import get_ai_move, evaluate_board_for_ai
-from .connect4_engine import COLS
+from .connect4_engine import COLS, PLAYER_PIECE, AI_PIECE
 
 from ..database.db import get_connection
 from ..database.models import (
@@ -53,8 +54,13 @@ class LearningAgent:
     def __init__(self):
         self.stats = LearningStats()
         self.last_result: Optional[str] = None
+
         # How often player plays each column 0..COLS-1
         self.player_column_counts: List[int] = [0] * COLS
+
+        # MCTS policy support
+        self.mcts = MCTSAgent(time_limit_ms=350, max_iters=2500)
+        self.policy = "mcts"  # or "minimax"
 
         # Per-game metrics
         self.current_game_ai_moves: int = 0
@@ -89,9 +95,15 @@ class LearningAgent:
         with get_connection() as conn:
             increment_player_column(conn, col)
 
-    def _insert_game_history(self, result: str, moves: int,
-                             mistakes: int, blunders: int,
-                             efficiency: float, avg_depth: float) -> None:
+    def _insert_game_history(
+        self,
+        result: str,
+        moves: int,
+        mistakes: int,
+        blunders: int,
+        efficiency: float,
+        avg_depth: float,
+    ) -> None:
         game_data = {
             "result": result,
             "moves": moves,
@@ -132,18 +144,13 @@ class LearningAgent:
     def current_depth(self) -> int:
         """
         PerformanceAgent:
-        Adapt minimax depth based on AI performance:
-
-        - First few games: moderate difficulty
-        - If AI is losing a lot: increase depth to play stronger
-        - If AI is dominating: reduce depth to be more fair
+        Adapt minimax depth based on AI performance.
         """
         games = self.stats.games_played
         win_rate = self.stats.ai_win_rate
 
         if games < 5:
-            # Warm-up phase
-            return 3
+            return 3  # warm-up
 
         if win_rate < 30:
             return 5  # hard
@@ -156,7 +163,7 @@ class LearningAgent:
         Main AI move chooser.
 
         - Decides depth using PerformanceAgent
-        - Uses minimax for the actual move
+        - Uses Minimax OR MCTS for the base move
         - BehaviorAgent biases towards contesting favorite player columns
         """
         depth = self.current_depth()
@@ -166,20 +173,35 @@ class LearningAgent:
         from .minimax_agent import get_valid_locations
         import random
 
-        base_col = get_ai_move(board, depth=depth)
+        policy = getattr(self, "policy", "minimax")
+        base_col = None
+
+        if policy == "mcts":
+            # Safety: if mcts wasn't created for some reason
+            if not hasattr(self, "mcts") or self.mcts is None:
+                self.mcts = MCTSAgent(time_limit_ms=350, max_iters=2500)
+
+            base_col = self.mcts.choose_move(
+                board,
+                ai_piece=AI_PIECE,
+                player_piece=PLAYER_PIECE,
+            )
+
+            if base_col is None:
+                base_col = get_ai_move(board, depth=depth)
+
+        else:
+            base_col = get_ai_move(board, depth=depth)
+
         valid_cols = get_valid_locations(board)
         if not valid_cols:
             return base_col
 
-        # If we don't have any behavior data yet, just return base_col
+        # No behavior data yet → return base move
         if sum(self.player_column_counts) == 0:
             return base_col
 
-        # Player's historically favorite column
-        favorite_col = max(
-            range(COLS),
-            key=lambda c: self.player_column_counts[c],
-        )
+        favorite_col = max(range(COLS), key=lambda c: self.player_column_counts[c])
         favorite_count = self.player_column_counts[favorite_col]
         total_moves = sum(self.player_column_counts)
         usage_ratio = favorite_count / float(total_moves or 1)
@@ -191,38 +213,35 @@ class LearningAgent:
             if random.random() < 0.5:
                 chosen = favorite_col
 
+        # final safety: ensure chosen is valid
+        if chosen not in valid_cols:
+            chosen = random.choice(valid_cols)
+
         return chosen
 
     # ---------- EvaluationAgent: measuring mistakes/blunders ----------
 
     def after_ai_move(self, board) -> None:
-        """
-        Called after the AI's move is actually placed on the board.
-        Evaluates the new position from AI's perspective.
-        """
-        # Use a smaller eval depth to keep it cheap
+        """Called after the AI's move is placed on the board."""
         self.last_ai_eval = evaluate_board_for_ai(board, depth=2)
 
     def after_player_move(self, board) -> None:
         """
-        Called after the player's move is actually placed on the board.
-        Compares new evaluation with previous AI evaluation to see
-        how much the position worsened for the AI.
+        Called after the player's move is placed on the board.
+        Detects if the player's move made the position better for the player
+        (worse for AI) compared to the last AI evaluation.
         """
         new_eval = evaluate_board_for_ai(board, depth=2)
 
         if self.last_ai_eval is None:
-            # First evaluation of the game
             self.last_ai_eval = new_eval
             return
 
-        delta = new_eval - self.last_ai_eval  # how much better/worse for AI
-        # If delta < 0, the position is worse for AI than before:
+        delta = new_eval - self.last_ai_eval
+
         if delta < 0:
-            # Moderate drop → "mistake"
             self.current_game_mistakes += 1
-            # Very large drop → "blunder"
-            if delta <= -200000:  # threshold relative to +/-1_000_000 terminal
+            if delta <= -200000:
                 self.current_game_blunders += 1
 
         self.last_ai_eval = new_eval
@@ -230,10 +249,7 @@ class LearningAgent:
     # ---------- Finalizing a game ----------
 
     def update_after_game(self, result: str) -> None:
-        """
-        result in {"ai", "player", "draw"}.
-        Update long-term stats, compute per-game efficiency, and persist.
-        """
+        """result in {'ai', 'player', 'draw'}."""
         self.stats.games_played += 1
         self.last_result = result
 
@@ -244,24 +260,21 @@ class LearningAgent:
         elif result == "draw":
             self.stats.draws += 1
 
-        # Save high-level stats
         self._save_stats_to_db()
 
-        # Per-game detailed metrics
         moves = self.current_game_ai_moves or 1
         mistakes = self.current_game_mistakes
         blunders = self.current_game_blunders
+
         avg_depth = (
             float(self.current_game_total_depth) / float(moves)
             if moves > 0
             else float(self.current_depth())
         )
 
-        # Simple efficiency metric: penalize mistakes and blunders
         penalty = mistakes + 2 * blunders
         efficiency = max(0.0, 1.0 - penalty / float(moves))
 
-        # Persist per-game history
         self._insert_game_history(
             result=result,
             moves=moves,
@@ -278,11 +291,9 @@ class LearningAgent:
         report["ai_win_rate"] = round(self.stats.ai_win_rate, 2)
         report["last_result"] = self.last_result
 
-        # Depth & behavior
         report["current_depth"] = self.current_depth()
         report["player_column_counts"] = self.player_column_counts
 
-        # Last game metrics
         if self.last_game_metrics is not None:
             lg = self.last_game_metrics
         else:
@@ -296,7 +307,6 @@ class LearningAgent:
             }
         report["last_game"] = lg
 
-        # History aggregates from DB
         with get_connection() as conn:
             history = fetch_history_aggregates(conn)
         report["history"] = history

@@ -3,15 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>Connect4 - Player vs AI</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/global.css') }}"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/game.css') }}"
-    />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game.css') }}" />
   </head>
+
   <body class="game-body">
     <div class="game-page">
       <header class="game-header">
@@ -19,7 +14,17 @@
           <h1>Connect4: Player vs Learning AI</h1>
           <p class="subtitle">Dark grid. Smart AI. Adaptive learning.</p>
         </div>
+
         <div class="header-actions">
+          <!-- ✅ AI Mode selector -->
+          <div class="ai-mode-wrap">
+            <label for="aiModeSelect" class="ai-mode-label">AI Mode</label>
+            <select id="aiModeSelect" class="ai-mode-select">
+              <option value="minimax">Minimax (Alpha-Beta)</option>
+              <option value="mcts">MCTS (Monte Carlo Tree Search)</option>
+            </select>
+          </div>
+
           <button id="resetBtn" class="btn-primary">New Game</button>
           <a href="{{ url_for('index') }}" class="btn-secondary">Back to Menu</a>
         </div>
@@ -43,6 +48,10 @@
         <section class="board-section">
           <div id="status-bar">
             <div id="status">Your turn. Click a column.</div>
+
+            <!-- ✅ Mode indicator -->
+            <div id="modeBadge" class="mode-badge">Mode: -</div>
+
             <div id="thinkingIndicator" class="thinking-indicator hidden">
               <span class="dot"></span>
               <span class="dot"></span>

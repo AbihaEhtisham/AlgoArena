@@ -8,6 +8,7 @@ from flask import (
 )
 from datetime import timedelta
 from modules.database.db import get_connection  # optional if you want direct DB use
+from flask import jsonify, request, render_template
 from modules.database.visualizer_db import init_visualizer_db
 from modules.database.visualizer_db import load_run  # adjust import if path differs
 from modules.visualizer.search_algorithms import run_search
@@ -26,9 +27,87 @@ from modules.game.connect4_engine import (
 from modules.game.learning_agent import LearningAgent
 from modules.visualizer.search_algorithms import run_search
 from modules.visualizer.report_generator import generate_report
-
+import os
+import requests
+from flask import request, jsonify, render_template
 
 app = Flask(__name__)
+
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
+
+
+
+@app.route("/api/tutor/chat", methods=["POST"])
+def api_tutor_chat():
+    data = request.get_json(silent=True) or {}
+    user_msg = (data.get("message") or "").strip()
+
+    if not user_msg:
+        return jsonify({"ok": False, "error": "Please type a question."}), 400
+
+    # Guardrails: keep it about algorithms + AlgoArena
+    system_prompt = """
+You are the AlgoArena AI Tutor.
+You ONLY answer questions about:
+- Search algorithms (BFS, DFS, UCS, Dijkstra, Greedy, A*, IDA*, Beam, etc.)
+- Heuristics (Manhattan, Euclidean, Chebyshev, Octile, admissible vs inadmissible)
+- Connect4 AI (minimax, alpha-beta pruning, evaluation, adaptive depth)
+- AlgoArena project features (visualizer, reports, database usage, UI flow)
+
+If the user asks something outside this scope, politely refuse and redirect them back to these topics.
+
+Response style:
+- Clear, student-friendly.
+- Use short headings + bullets when helpful.
+- If user asks “difference between X and Y”, include: idea, optimality, completeness, time/space.
+"""
+
+    # You can optionally add "project context" here (very short, no file names needed)
+    project_context = """
+Project context: AlgoArena is a Flask web app with:
+1) Algorithm Visualizer (grid pathfinding + heuristics + AI report)
+2) Connect4 game (minimax/alpha-beta + learning/progress report)
+"""
+
+    prompt = f"{system_prompt}\n\n{project_context}\n\nUser question: {user_msg}"
+
+    try:
+        # Ollama generate API (non-stream)
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,
+                    "num_predict": 220
+                }
+            },
+            timeout=180
+        )
+    except requests.RequestException as e:
+        return jsonify({
+            "ok": False,
+            "error": "Tutor backend couldn't reach Ollama. Is Ollama running?",
+            "details": str(e)
+        }), 500
+
+    if resp.status_code != 200:
+        return jsonify({
+            "ok": False,
+            "error": f"Ollama error (HTTP {resp.status_code}).",
+            "details": resp.text[:600]
+        }), 500
+
+    out = resp.json()
+    answer = (out.get("response") or "").strip()
+    if not answer:
+        answer = "I couldn't generate a response. Try rephrasing your question."
+
+    return jsonify({"ok": True, "answer": answer})
+
 
 # For sessions (needed to store board per user)
 app.secret_key = "change-this-secret-key"
@@ -151,16 +230,6 @@ def connect4():
     get_board()  # ensure a board exists in session
     return render_template("game.html", rows=ROWS, cols=COLS)
 
-
-@app.route("/api/connect4/new", methods=["POST"])
-def api_new_game():
-    """Start a new game (reset board)."""
-    board = init_board()
-    learning_agent.start_new_game()
-    return jsonify({"board": board, "status": "new"})
-
-
-
 @app.route("/api/connect4/player-move", methods=["POST"])
 def api_player_move():
     """Handle player move and AI move; return updated board + game status."""
@@ -180,7 +249,7 @@ def api_player_move():
     drop_piece(board, player_row, col, PLAYER_PIECE)
 
     # Let the evaluation agent see the new position
-    learning_agent.after_player_move(board)
+
 
     status = "ongoing"
     winner = None
@@ -203,7 +272,7 @@ def api_player_move():
         if ai_col is not None and is_valid_move(board, ai_col):
             ai_row = get_next_open_row(board, ai_col)
             drop_piece(board, ai_row, ai_col, AI_PIECE)
-            learning_agent.after_ai_move(board)
+        
 
 
             if check_winner(board, AI_PIECE):
@@ -274,6 +343,28 @@ def connect4_report():
     report["player_column_bars"] = bars
     return render_template("game_report.html", report=report)
 
+@app.route("/learn")
+def learn_with_ai():
+    return render_template("learn.html")
+@app.route("/api/connect4/new", methods=["POST"])
+def api_new_game():
+    
+    data = request.get_json(silent=True) or {}
+    mode = (data.get("ai_mode") or "minimax").lower()
+
+    learning_agent.policy = "mcts" if mode == "mcts" else "minimax"
+
+    board = init_board()
+    learning_agent.start_new_game()
+    return jsonify({"board": board, "status": "new", "ai_mode": learning_agent.policy})
+
+@app.route("/api/tutor/health", methods=["GET"])
+def tutor_health():
+    try:
+        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        return jsonify({"ok": True, "status": r.status_code, "body": r.json()}), 200
+    except Exception as e:
+        return jsonify({"ok": False, "error": repr(e), "ollama_url": OLLAMA_URL}), 500
 
 
 if __name__ == "__main__":

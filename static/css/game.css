@@ -353,3 +353,50 @@
   .board-section{ order: 1; }
   .avatar-wrapper{ max-width: 520px; }
 }
+/* ===== AI Mode selector + badge ===== */
+.ai-mode-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-right: 6px;
+}
+
+.ai-mode-label {
+  font-size: 0.75rem;
+  color: #bdbdbd;
+}
+
+.ai-mode-select {
+  border-radius: 999px;
+  border: 1px solid #3a3a3a;
+  background: #141414;
+  color: #f5f5f5;
+  padding: 8px 12px;
+  font: inherit;
+  outline: none;
+  min-width: 220px;
+}
+
+.ai-mode-select:focus {
+  border-color: #f5c842;
+  box-shadow: 0 0 0 1px rgba(245, 200, 66, 0.35);
+}
+
+.mode-badge {
+  font-size: 0.85rem;
+  color: #f5c842;
+  border: 1px solid rgba(245, 200, 66, 0.35);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(245, 200, 66, 0.08);
+}
+
+/* make status bar fit nicely */
+#status-bar {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#status {
+  font-weight: 600;
+}

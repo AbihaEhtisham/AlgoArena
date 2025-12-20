@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>AlgoArena - AI Tutor</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tutor.css') }}" />
+  </head>
+
+  <body class="tutor-body">
+    <div class="tutor-page">
+      <header class="tutor-header">
+        <div class="th-left">
+          <div class="tutor-brand">
+            <div class="tutor-badge">
+              <img
+                src="{{ url_for('static', filename='assets/icons/robo_icon.png') }}"
+                alt="AI"
+              />
+            </div>
+            <div>
+              <h1>AlgoArena AI Tutor</h1>
+              <p>Local pre-trained chatbot for algorithms + your project.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="th-right">
+          <a class="btn-secondary" href="{{ url_for('index') }}">Back to Menu</a>
+        </div>
+      </header>
+
+      <main class="tutor-main">
+        <section class="chat-card">
+          <div class="chat-log" id="chatLog">
+            <div class="msg ai">
+              <div class="bubble">
+                Hi — I’m your AlgoArena AI Tutor. Ask me about BFS/DFS/UCS, A*, heuristics,
+                or how your visualizer and Connect4 agents work.
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-row">
+            <input
+              id="chatInput"
+              class="chat-input"
+              type="text"
+              placeholder="Type your question (e.g., 'difference between bfs and dfs')"
+              autocomplete="off"
+            />
+            <button id="sendBtn" class="btn-primary">Send</button>
+          </div>
+
+          <div class="chat-hint">
+            Tip: Try “Explain A* with Manhattan heuristic and why it’s optimal.”
+          </div>
+        </section>
+
+        <section class="side-card">
+          <h2>Quick prompts</h2>
+          <div class="prompt-list">
+            <button class="prompt-btn" data-p="Difference between BFS and DFS?">BFS vs DFS</button>
+            <button class="prompt-btn" data-p="Explain UCS vs Dijkstra.">UCS vs Dijkstra</button>
+            <button class="prompt-btn" data-p="Explain A* and admissible heuristics.">A* + admissible h</button>
+            <button class="prompt-btn" data-p="What makes my AlgoArena project multi-agent?">Multi-agent in AlgoArena</button>
+          </div>
+
+          <h2 style="margin-top:14px;">Status</h2>
+          <div class="status-box" id="tutorStatus">Ready.</div>
+        </section>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/tutor_core.js') }}"></script>
+  </body>
+</html>

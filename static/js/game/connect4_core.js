@@ -5,22 +5,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const statusDiv = document.getElementById("status");
   const resetBtn = document.getElementById("resetBtn");
-  const columnButtons = Array.from(
-    document.querySelectorAll(".column-header")
-  );
+  const columnButtons = Array.from(document.querySelectorAll(".column-header"));
   const thinkingIndicator = document.getElementById("thinkingIndicator");
 
   const humanAvatar = document.getElementById("humanAvatar");
   const aiAvatar = document.getElementById("aiAvatar");
 
+  const aiModeSelect = document.getElementById("aiModeSelect");
+  const modeBadge = document.getElementById("modeBadge");
+
   let gameOver = false;
   let isWaiting = false;
   let isPlayerTurn = true;
 
-  const THINK_DELAY_MS = 800; // delay before showing AI move
+  const THINK_DELAY_MS = 700;
+
+  function getSelectedMode() {
+    if (!aiModeSelect) return "minimax";
+    const v = (aiModeSelect.value || "minimax").toLowerCase();
+    return v === "mcts" ? "mcts" : "minimax";
+  }
+
+  function setModeBadge(mode) {
+    if (!modeBadge) return;
+    const label = mode === "mcts" ? "MCTS" : "Minimax";
+    modeBadge.textContent = `Mode: ${label}`;
+  }
 
   function setActiveAvatar(side) {
     if (!humanAvatar || !aiAvatar) return;
+
     if (side === "human") {
       humanAvatar.classList.add("active");
       aiAvatar.classList.remove("active");
@@ -43,19 +57,14 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let c = 0; c < cols; c++) {
         const cell = document.getElementById(`cell-${r}-${c}`);
         const value = board[r][c];
-        cell.className = "cell"; // reset base
-        if (value === 0) {
-          cell.classList.add("empty");
-        } else if (value === 1) {
-          cell.classList.add("player");
-        } else if (value === 2) {
-          cell.classList.add("ai");
-        }
+        cell.className = "cell";
+        if (value === 0) cell.classList.add("empty");
+        else if (value === 1) cell.classList.add("player");
+        else if (value === 2) cell.classList.add("ai");
       }
     }
   }
 
-  // Optimistically drop player's disc in UI (DOM only)
   function dropPlayerDiscUI(column) {
     for (let r = rows - 1; r >= 0; r--) {
       const cell = document.getElementById(`cell-${r}-${column}`);
@@ -69,9 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function makeMove(column) {
     if (gameOver || isWaiting || !isPlayerTurn) return;
+
     isWaiting = true;
 
-    // Optimistic UI: show player's disc immediately
+    // optimistic UI
     dropPlayerDiscUI(column);
     statusDiv.textContent = "You played. AI is thinking...";
     setActiveAvatar("ai");
@@ -85,17 +95,18 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ column }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        statusDiv.textContent = data.error || "Error occurred.";
-        // In case of server error, force a board refresh via new game
+        const msg = data.error || data.details || "Server error.";
+        statusDiv.textContent = msg;
         showThinking(false);
         isWaiting = false;
+        isPlayerTurn = true;
+        setActiveAvatar("human");
         return;
       }
 
-      // Wait a bit so the user SEES "AI thinking"
       setTimeout(() => {
         renderBoard(data.board);
 
@@ -120,11 +131,10 @@ document.addEventListener("DOMContentLoaded", () => {
               "It's a draw. Redirecting to AI progress report...";
           }
 
-          // Redirect to server-side report page
           if (data.redirect_to_report) {
             setTimeout(() => {
               window.location.href = data.redirect_to_report;
-            }, 1500);
+            }, 1200);
           }
         }
 
@@ -132,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }, THINK_DELAY_MS);
     } catch (err) {
       console.error(err);
-      statusDiv.textContent = "Network error.";
+      statusDiv.textContent = "Network error (couldn't reach server).";
       showThinking(false);
       isWaiting = false;
       isPlayerTurn = true;
@@ -141,25 +151,49 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function resetGame() {
+    const mode = getSelectedMode();
+    setModeBadge(mode);
+
+    // ✅ Don't permanently disable the dropdown.
+    // Only disable while the "new game" request is in-flight.
+    if (aiModeSelect) aiModeSelect.disabled = true;
+
     try {
       const response = await fetch("/api/connect4/new", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ai_mode: mode }),
       });
-      const data = await response.json();
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        statusDiv.textContent = data.error || "Could not start a new game.";
+        if (aiModeSelect) aiModeSelect.disabled = false;
+        return;
+      }
+
       renderBoard(data.board);
       gameOver = false;
       isWaiting = false;
       isPlayerTurn = true;
       showThinking(false);
       setActiveAvatar("human");
+
+      // server may confirm selected mode
+      if (data.ai_mode) setModeBadge(data.ai_mode);
+
       statusDiv.textContent = "New game started. Your turn!";
     } catch (err) {
       console.error(err);
-      statusDiv.textContent = "Could not start a new game.";
+      statusDiv.textContent = "Could not start a new game (network error).";
+    } finally {
+      // ✅ re-enable dropdown after reset finishes
+      if (aiModeSelect) aiModeSelect.disabled = false;
     }
   }
 
-  // Attach listeners
+  // listeners
   columnButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const col = parseInt(btn.dataset.col, 10);
@@ -171,6 +205,13 @@ document.addEventListener("DOMContentLoaded", () => {
     resetGame();
   });
 
-  // Initialize a new game on first load
+  // ✅ If user changes mode, start a fresh game in that mode
+  if (aiModeSelect) {
+    aiModeSelect.addEventListener("change", () => {
+      resetGame();
+    });
+  }
+
+  // init
   resetGame();
 });
